@@ -1,3 +1,5 @@
+import { GoogleGenAI } from "@google/genai";
+import { showInterstitialAd } from "./adManager";
 import { ScreenOrientation } from '@capacitor/screen-orientation';
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
@@ -141,15 +143,41 @@ export default function App() {
   };
 
   const selectVideo = (v: Video | null) => {
-    setSelectedVideo(v);
-    if (v) {
-      window.history.pushState({ tab: activeTab, view: profileView, video: v.id }, "");
-    } else {
-      // If closing, we can handle it via browser back or explicit close
-      // Actually, if they click close, we should probably go back in history
-      if (selectedVideo) window.history.back();
+  setSelectedVideo(v);
+
+  if (v) {
+
+    // Safe ad trigger every 4th video open
+    const adCount =
+      Number(localStorage.getItem("nanotube_ad_count") || "0") + 1;
+
+    localStorage.setItem(
+      "nanotube_ad_count",
+      String(adCount)
+    );
+
+    if (adCount % 4 === 0) {
+      showInterstitialAd();
     }
-  };
+
+    window.history.pushState(
+      {
+        tab: activeTab,
+        view: profileView,
+        video: v.id,
+      },
+      ""
+    );
+
+  } else {
+
+    // If closing, go back safely
+    if (window.history.state?.video) {
+      window.history.back();
+    }
+
+  }
+};
 
   // Sync state to localStorage
   useEffect(() => {
