@@ -1,35 +1,21 @@
 package com.nanotubepro.hrlabapp;
 
-import android.os.Bundle;
-import android.webkit.WebSettings;
-import android.webkit.WebView;
+import android.app.PictureInPictureParams;
+import android.os.Build;
 
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
 
     @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
+    public void onUserLeaveHint() {
+        super.onUserLeaveHint();
 
-        WebView webView = bridge.getWebView();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            PictureInPictureParams params =
+                new PictureInPictureParams.Builder().build();
 
-        WebSettings settings = webView.getSettings();
-
-        settings.setJavaScriptEnabled(true);
-        settings.setDomStorageEnabled(true);
-        settings.setMediaPlaybackRequiresUserGesture(false);
-
-        webView.setKeepScreenOn(true);
-    }
-
-    @Override
-    public void onPause() {
-        // Prevent pausing media playback
-    }
-
-    @Override
-    public void onResume() {
-        super.onResume();
+            enterPictureInPictureMode(params);
+        }
     }
 }
