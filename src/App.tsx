@@ -1,7 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
-import { showInterstitialAd } from "./adManager";
 import { ScreenOrientation } from '@capacitor/screen-orientation';
 import React, { useState, useEffect } from "react";
+import InterstitialAd from "./components/InterstitialAd";
 import { motion, AnimatePresence } from "motion/react";
 import { 
   Settings, 
@@ -73,6 +73,8 @@ export default function App() {
   const [apiKeys, setApiKeys] = useState<string>(() => localStorage.getItem("nanotube_api_keys") || "");
   const [region, setRegion] = useState<string>(() => localStorage.getItem("nanotube_region") || "US");
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
+  const [showAdModal, setShowAdModal] = useState(false);
+  const [pendingVideo, setPendingVideo] = useState<Video | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchHistory, setSearchHistory] = useState<string[]>(() => {
     const saved = localStorage.getItem("nanotube_search_history");
@@ -143,11 +145,9 @@ export default function App() {
   };
 
   const selectVideo = (v: Video | null) => {
-  setSelectedVideo(v);
 
   if (v) {
 
-    // Safe ad trigger every 4th video open
     const adCount =
       Number(localStorage.getItem("nanotube_ad_count") || "0") + 1;
 
@@ -156,9 +156,17 @@ export default function App() {
       String(adCount)
     );
 
+    // Show interstitial every 4th video
     if (adCount % 4 === 0) {
-      showInterstitialAd();
+
+      setPendingVideo(v);
+
+      setShowAdModal(true);
+
+      return;
     }
+
+    setSelectedVideo(v);
 
     window.history.pushState(
       {
@@ -171,7 +179,8 @@ export default function App() {
 
   } else {
 
-    // If closing, go back safely
+    setSelectedVideo(null);
+
     if (window.history.state?.video) {
       window.history.back();
     }
@@ -1215,6 +1224,29 @@ export default function App() {
             </motion.div>
           )}
         </AnimatePresence>
+        <InterstitialAd
+  open={showAdModal}
+  onClose={() => {
+
+    setShowAdModal(false);
+
+    if (pendingVideo) {
+
+      setSelectedVideo(pendingVideo);
+
+      window.history.pushState(
+        {
+          tab: activeTab,
+          view: profileView,
+          video: pendingVideo.id,
+        },
+        ""
+      );
+
+      setPendingVideo(null);
+    }
+  }}
+/>
       </main>
 
       <nav className="h-20 bg-card-dark border-t border-border-dark flex items-center justify-center gap-16 md:gap-32 z-50 backdrop-blur-md shrink-0">
