@@ -1,3 +1,4 @@
+import { ScreenOrientation } from '@capacitor/screen-orientation';
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { 
@@ -1421,34 +1422,29 @@ const PlayerView: React.FC<{
     setCurrentTime(newTime);
   };
 
-  const toggleFullscreen = () => {
+   const toggleFullscreen = async () => {
+  try {
     if (!document.fullscreenElement) {
-      containerRef.current?.requestFullscreen().catch(() => {});
-      setIsFullscreen(true);
-      // Force landscape
-      try {
-        const orientation = screen.orientation as any;
-        if (orientation && orientation.lock) {
-          orientation.lock("landscape").catch(() => {});
-        }
-      } catch (e) {}
-    } else {
-      document.exitFullscreen();
-      setIsFullscreen(false);
-      try {
-        const orientation = screen.orientation as any;
-        if (orientation && orientation.unlock) {
-          orientation.unlock();
-        }
-      } catch (e) {}
-    }
-  };
+      await ScreenOrientation.lock({
+        orientation: 'landscape'
+      });
 
-  useEffect(() => {
-    const handleFsChange = () => setIsFullscreen(!!document.fullscreenElement);
-    document.addEventListener('fullscreenchange', handleFsChange);
-    return () => document.removeEventListener('fullscreenchange', handleFsChange);
-  }, []);
+      await containerRef.current?.requestFullscreen();
+
+      setIsFullscreen(true);
+    } else {
+      await document.exitFullscreen();
+
+      await ScreenOrientation.lock({
+        orientation: 'portrait'
+      });
+
+      setIsFullscreen(false);
+    }
+  } catch (e) {
+    console.warn("Fullscreen error:", e);
+  }
+};
 
   const formatTime = (seconds: number) => {
     const h = Math.floor(seconds / 3600);
