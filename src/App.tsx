@@ -613,12 +613,7 @@ export default function App() {
         </div>
 
         <div className="flex items-center gap-3">
-           <button 
-             onClick={() => setIsSearchOpen(true)}
-             className="md:hidden p-2 text-white/40 hover:text-brand-red transition-colors"
-           >
-             <Search className="w-5 h-5" />
-           </button>
+           
            <button 
              onClick={() => {
                setActiveTab("profile");
@@ -1276,6 +1271,14 @@ export default function App() {
           active={activeTab === "home"} 
           onClick={() => changeTab("home")} 
         />
+        <NavButton
+  icon={<Search className="w-6 h-6" />}
+  label="Search"
+  active={activeTab === "search"}
+  onClick={() => {
+    setIsSearchOpen(true);
+  }}
+/>
         <NavButton 
           icon={<User className="w-6 h-6" />} 
           label="Profile" 
