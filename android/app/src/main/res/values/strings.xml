@@ -1,0 +1,17 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="app_name">NanoTube</string>
+    <string name="home">Home</string>
+    <string name="search">Search</string>
+    <string name="settings">Settings</string>
+    <string name="api_key_label">YouTube API Keys (Comma separated)</string>
+    <string name="test_api_key">Test API Keys</string>
+    <string name="api_status_good">API Status: Ready</string>
+    <string name="api_status_bad">API Status: Quota Exceeded/Error</string>
+    <string name="loading">Loading...</string>
+    <string name="no_internet">No internet connection</string>
+    <string name="retry">Retry</string>
+    <string name="data_saver">Data Saver Mode</string>
+    <string name="video_quality">Preferred Quality</string>
+    <string name="clear_cache">Clear Cache</string>
+    <string name="about_app">About NanoTube</string>
+</resources>

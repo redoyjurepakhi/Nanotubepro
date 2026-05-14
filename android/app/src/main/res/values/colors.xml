@@ -1,0 +1,12 @@
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="red">#FFFF0000</color>
+    <color name="dark_grey">#FF1A1A1A</color>
+    <color name="medium_grey">#FF333333</color>
+    <color name="light_grey">#FFCCCCCC</color>
+    
+    <color name="colorPrimary">#FF000000</color>
+    <color name="colorPrimaryDark">#FF000000</color>
+    <color name="colorAccent">#FFFF0000</color>
+</resources>

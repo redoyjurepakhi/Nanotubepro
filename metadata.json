@@ -1,0 +1,6 @@
+{
+  "name": "NanoTube",
+  "description": "Lightweight YouTube client for legacy Android devices (API 19+). Optimized for low RAM and slow CPUs.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
