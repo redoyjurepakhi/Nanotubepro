@@ -208,14 +208,25 @@ export default function App() {
   };
 
   // Clear search and return home
-  const goHome = () => {
-    setSearchQuery("");
-    setSuggestions([]);
-    setShowSuggestions(false);
-    changeTab("home");
-    // Only re-fetch if we are already on home to refresh trending
-    fetchVideos("");
-  };
+  const goHome = async () => {
+
+  setSearchQuery("");
+
+  setSuggestions([]);
+
+  setShowSuggestions(false);
+
+  setIsSearchOpen(false);
+
+  changeTab("home");
+
+  // Reset current videos first
+  setVideos([]);
+
+  // Reload trending/home feed
+  await fetchVideos("");
+
+};
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -263,9 +274,18 @@ export default function App() {
              setSuggestions(items);
           }
         }
-      } catch (e) {
-        console.warn("Suggestions fetch failed - possibly CORS");
-      }
+    } catch (e) {
+  console.warn("Suggestions fetch failed - using local suggestions");
+
+  const localSuggestions = videos
+    .map(v => v.title)
+    .filter(title =>
+      title.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    .slice(0, 5);
+
+  setSuggestions(localSuggestions);
+ }
     }, 300);
 
     return () => clearTimeout(timer);
