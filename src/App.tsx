@@ -681,7 +681,55 @@ export default function App() {
                     Configure Keys
                   </button>
                 </div>
-              ) : (
+              ) : activeTab === "search" ? (
+
+  <motion.div
+    key="search"
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    exit={{ opacity: 0 }}
+    className="space-y-6 pb-24"
+  >
+
+    <div className="sticky top-0 z-20 bg-bg-dark pb-4">
+      <input
+        type="text"
+        placeholder="Search videos..."
+        value={searchQuery}
+        onChange={(e) => {
+          setSearchQuery(e.target.value);
+
+          if (e.target.value.trim()) {
+            fetchVideos(e.target.value);
+          }
+        }}
+        className="w-full p-4 rounded-2xl bg-card-dark border border-border-dark text-white outline-none"
+      />
+    </div>
+
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
+
+      {videos.map((v, idx) => (
+        <VideoCard
+          key={`${v.id}-${idx}`}
+          video={v}
+          onClick={() => selectVideo(v)}
+          onWatchLater={toggleWatchLater}
+          onAddToPlaylist={(v, pName) =>
+            addToPlaylist(pName || "My Favorites", v)
+          }
+          onQueue={addToQueue}
+          onShare={shareVideo}
+          onChannelClick={fetchChannelContent}
+          playlists={playlists}
+        />
+      ))}
+
+    </div>
+
+  </motion.div>
+
+) : (
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
                     {loading && videos.length === 0 ? (
