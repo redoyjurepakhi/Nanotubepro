@@ -156,7 +156,7 @@ export default function App() {
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
-  const changeTab = (tab: "home" | "profile") => {
+  const changeTab = (tab: "home" | "search" | "profile") => {
     setActiveTab(tab);
     setProfileView("main");
     window.history.pushState({ tab, view: "main", video: null }, "");
