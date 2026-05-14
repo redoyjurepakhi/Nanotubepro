@@ -1,3 +1,4 @@
+import { App } from "@capacitor/app";
 import { GoogleGenAI } from "@google/genai";
 import { ScreenOrientation } from '@capacitor/screen-orientation';
 import React, { useState, useEffect } from "react";
@@ -61,7 +62,7 @@ interface HistoryItem {
 }
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<"home" | "profile">("home");
+  const [activeTab, setActiveTab] = useState<"home" | "search" | "profile">("home");
   const [profileView, setProfileView] = useState<"main" | "settings" | "history" | "watch-later" | "queue" | "playlists" | "setup" | "changelogs" | "about" | "channel">("main");
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null);
   const [channelData, setChannelData] = useState<Partial<Video> | null>(null);
@@ -119,9 +120,31 @@ export default function App() {
         if (e.state.view) setProfileView(e.state.view);
         if (e.state.video === null) setSelectedVideo(null);
       } else {
-        setActiveTab("home");
-        setProfileView("main");
-        setSelectedVideo(null);
+
+        // If not already home, go home first
+        if (activeTab !== "home") {
+
+          setActiveTab("home");
+
+          setProfileView("main");
+
+          window.history.pushState(
+            {
+              tab: "home",
+              view: "main",
+              video: null
+            },
+            ""
+          );
+
+        } else {
+
+          setSelectedVideo(null);
+
+          App.exitApp();
+
+        }
+
       }
     };
 
@@ -547,23 +570,9 @@ export default function App() {
     }
   };
 
-  if (isSearchOpen) {
-    return (
-      <SearchOverlay 
-        query={searchQuery}
-        setQuery={setSearchQuery}
-        suggestions={suggestions}
-        history={searchHistory}
-        onSearch={(q) => {
-          setSearchQuery(q);
-          fetchVideos(q);
-          setIsSearchOpen(false);
-          setSearchHistory(prev => [q, ...prev.filter(s => s !== q)].slice(0, 15));
-        }}
-        onClose={() => setIsSearchOpen(false)}
-      />
-    );
-  }
+  
+
+  
 
   if (selectedVideo) {
     return (
@@ -604,7 +613,7 @@ export default function App() {
 
         <div className="flex-1 flex justify-center px-4 max-w-2xl relative">
           <div 
-            onClick={() => setIsSearchOpen(true)}
+            onClick={() => changeTab("search")}
             className="w-full flex items-center bg-[#121212] border border-[#303030] rounded-full px-4 py-2 cursor-text group"
           >
             <span className="text-[14px] text-white/40 font-normal flex-1">Search</span>
@@ -1276,18 +1285,19 @@ export default function App() {
   label="Search"
   active={activeTab === "search"}
   onClick={() => {
-    setIsSearchOpen(true);
+    changeTab("search");
   }}
 />
         <NavButton 
-          icon={<User className="w-6 h-6" />} 
-          label="Profile" 
-          active={activeTab === "profile"} 
-          onClick={() => changeTab("profile")} 
-        />
-      </nav>
-    </div>
-  );
+  icon={<User className="w-6 h-6" />} 
+  label="Profile"
+  active={activeTab === "profile"}
+  onClick={() => changeTab("profile")} 
+/>
+
+</nav>
+</div>
+);
 }
 
 function ProfileLink({ icon, label, count, onClick }: { icon: React.ReactNode, label: string, count?: number, onClick?: () => void }) {
