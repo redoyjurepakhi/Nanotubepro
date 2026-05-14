@@ -681,7 +681,40 @@ export default function App() {
                     Configure Keys
                   </button>
                 </div>
-              ) : activeTab === "search" ? (
+             ) : (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
+                    {loading && videos.length === 0 ? (
+                      Array(12).fill(0).map((_, i) => (
+                        <div key={i} className="bg-card-dark rounded-xl aspect-video animate-pulse border border-white/5" />
+                      ))
+                    ) : (
+                      videos.map((v, idx) => (
+                        <VideoCard 
+                          key={`${v.id}-${idx}`} 
+                          video={v} 
+                          onClick={() => selectVideo(v)}
+                          onWatchLater={toggleWatchLater}
+                          onAddToPlaylist={(v, pName) => addToPlaylist(pName || "My Favorites", v)}
+                          onQueue={addToQueue}
+                          onShare={shareVideo}
+                          onChannelClick={fetchChannelContent}
+                          playlists={playlists}
+                        />
+                      ))
+                    )}
+                  </div>
+                  
+                  {/* SCROLL TRIGGER FOR INFINITE SCROLL */}
+                  <div id="scroll-trigger" className="h-20 flex items-center justify-center py-10">
+                    {loadingMore && (
+                      <RefreshCw className="w-6 h-6 text-brand-red animate-spin" />
+                    )}
+                  </div>
+                </>
+              )}
+            </motion.div>
+          ) : activeTab === "search" ? (
 
   <motion.div
     key="search"
@@ -730,39 +763,6 @@ export default function App() {
   </motion.div>
 
 ) : (
-                <>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
-                    {loading && videos.length === 0 ? (
-                      Array(12).fill(0).map((_, i) => (
-                        <div key={i} className="bg-card-dark rounded-xl aspect-video animate-pulse border border-white/5" />
-                      ))
-                    ) : (
-                      videos.map((v, idx) => (
-                        <VideoCard 
-                          key={`${v.id}-${idx}`} 
-                          video={v} 
-                          onClick={() => selectVideo(v)}
-                          onWatchLater={toggleWatchLater}
-                          onAddToPlaylist={(v, pName) => addToPlaylist(pName || "My Favorites", v)}
-                          onQueue={addToQueue}
-                          onShare={shareVideo}
-                          onChannelClick={fetchChannelContent}
-                          playlists={playlists}
-                        />
-                      ))
-                    )}
-                  </div>
-                  
-                  {/* SCROLL TRIGGER FOR INFINITE SCROLL */}
-                  <div id="scroll-trigger" className="h-20 flex items-center justify-center py-10">
-                    {loadingMore && (
-                      <RefreshCw className="w-6 h-6 text-brand-red animate-spin" />
-                    )}
-                  </div>
-                </>
-              )}
-            </motion.div>
-          ) : (
             <motion.div 
               key="profile"
               initial={{ opacity: 0, y: 20 }}
