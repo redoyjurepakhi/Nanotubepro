@@ -12,22 +12,24 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        WebView webView = this.bridge.getWebView();
+        WebView webView = bridge.getWebView();
 
         WebSettings settings = webView.getSettings();
 
-        settings.setMediaPlaybackRequiresUserGesture(false);
-        settings.setDomStorageEnabled(true);
         settings.setJavaScriptEnabled(true);
+        settings.setDomStorageEnabled(true);
+        settings.setMediaPlaybackRequiresUserGesture(false);
+
+        webView.setKeepScreenOn(true);
     }
 
     @Override
-    public void onPause() {
-        // Do NOT pause WebView audio/video
+    protected void onPause() {
+        // Prevent pausing media playback
     }
 
     @Override
-    public void onResume() {
+    protected void onResume() {
         super.onResume();
     }
 }
