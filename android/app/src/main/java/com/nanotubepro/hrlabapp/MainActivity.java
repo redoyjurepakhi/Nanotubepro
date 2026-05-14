@@ -24,12 +24,12 @@ public class MainActivity extends BridgeActivity {
     }
 
     @Override
-    protected void onPause() {
+    public void onPause() {
         // Prevent pausing media playback
     }
 
     @Override
-    protected void onResume() {
+    public void onResume() {
         super.onResume();
     }
 }
