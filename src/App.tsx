@@ -533,10 +533,16 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (activeTab === "home") {
+
+  if (activeTab === "home") {
+
+    if (videos.length === 0) {
       fetchVideos();
     }
-  }, [activeTab, apiKeys]);
+
+  }
+
+}, [activeTab, apiKeys]);
 
   // Infinite Scroll Observer
   useEffect(() => {
@@ -707,15 +713,68 @@ export default function App() {
         </div>
       </header>
 
-      <main 
-        ref={mainRef}
+      <main
+  ref={mainRef}
+
+  onTouchStart={(e) => {
+
+    if (mainRef.current?.scrollTop === 0) {
+
+      setPullStartY(e.touches[0].clientY);
+
+      setIsPulling(true);
+
+    }
+
+  }}
+
+  onTouchMove={(e) => {
+
+    if (!isPulling) return;
+
+    const distance =
+      e.touches[0].clientY - pullStartY;
+
+    if (distance > 0) {
+
+      setPullDistance(distance);
+
+    }
+
+  }}
+
+  onTouchEnd={async () => {
+
+    if (pullDistance > 120) {
+
+      await fetchVideos(
+        activeTab === "search"
+          ? searchQuery
+          : undefined
+      );
+
+    }
+
+    setPullDistance(0);
+
+    setIsPulling(false);
+
+  }}
         className="flex-1 overflow-y-auto w-full max-w-7xl mx-auto p-6 md:p-8 custom-scrollbar relative"
       >
         {/* PULL TO REFRESH INDICATOR */}
         <motion.div 
           className="absolute top-0 left-0 right-0 flex justify-center py-4 pointer-events-none z-50"
           initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: loading ? 1 : 0, y: loading ? 0 : -20 }}
+          animate={{
+  opacity:
+    loading || pullDistance > 40 ? 1 : 0,
+
+  y:
+    loading
+      ? 0
+      : Math.min(pullDistance / 2, 40)
+}}
         >
           <div className="bg-brand-red p-2 rounded-full shadow-lg">
             <RefreshCw className="w-5 h-5 text-white animate-spin" />
@@ -1474,7 +1533,10 @@ const PlayerView: React.FC<{
   playlists: Record<string, Video[]>,
   qualityPreference?: string
 }> = ({ video, onClose, related, initialTime, onProgress, onWatchLater, onAddToPlaylist, onQueue, onShare, onNavigateSettings, onChannelClick, playlists, qualityPreference }) => {
-  const [activeVideo, setActiveVideo] = useState(video);
+ const [pullStartY, setPullStartY] = useState(0);
+const [pullDistance, setPullDistance] = useState(0);
+const [isPulling, setIsPulling] = useState(false);
+ const [activeVideo, setActiveVideo] = useState(video);
   const [isPlaying, setIsPlaying] = useState(true);
   const [currentTime, setCurrentTime] = useState(initialTime || 0);
   const [duration, setDuration] = useState(0);
