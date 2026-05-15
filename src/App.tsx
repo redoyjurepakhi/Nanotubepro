@@ -114,47 +114,95 @@ export default function App() {
 
   // Sync state and navigation
   useEffect(() => {
-    const handlePopState = (e: PopStateEvent) => {
-      if (e.state) {
-        if (e.state.tab) setActiveTab(e.state.tab);
-        if (e.state.view) setProfileView(e.state.view);
-        if (e.state.video === null) setSelectedVideo(null);
-      } else {
 
-        // If not already home, go home first
-        if (activeTab !== "home") {
+  const handlePopState = (e: PopStateEvent) => {
 
-          setActiveTab("home");
+    if (e.state) {
 
-          setProfileView("main");
+      if (e.state.tab) setActiveTab(e.state.tab);
 
-          window.history.pushState(
-            {
-              tab: "home",
-              view: "main",
-              video: null
-            },
-            ""
-          );
+      if (e.state.view) setProfileView(e.state.view);
 
-        } else {
+      if (e.state.video === null) setSelectedVideo(null);
 
-          setSelectedVideo(null);
+    } else {
 
-          App.exitApp();
+      // CLOSE VIDEO FIRST
+      if (selectedVideo) {
 
-        }
+        setSelectedVideo(null);
+
+        return;
 
       }
-    };
 
-    window.addEventListener("popstate", handlePopState);
-    
-    // Initial state
-    window.history.replaceState({ tab: activeTab, view: profileView, video: selectedVideo }, "");
+      // PROFILE SUBPAGE -> PROFILE MAIN
+      if (
+        activeTab === "profile" &&
+        profileView !== "main"
+      ) {
 
-    return () => window.removeEventListener("popstate", handlePopState);
-  }, []);
+        setProfileView("main");
+
+        window.history.pushState(
+          {
+            tab: "profile",
+            view: "main",
+            video: null
+          },
+          ""
+        );
+
+        return;
+
+      }
+
+      // SEARCH OR PROFILE -> HOME
+      if (
+        activeTab === "search" ||
+        activeTab === "profile"
+      ) {
+
+        setActiveTab("home");
+
+        setProfileView("main");
+
+        window.history.pushState(
+          {
+            tab: "home",
+            view: "main",
+            video: null
+          },
+          ""
+        );
+
+        return;
+
+      }
+
+      // HOME -> EXIT APP
+      App.exitApp();
+
+    }
+
+  };
+
+  window.addEventListener("popstate", handlePopState);
+
+  // Initial state
+  window.history.replaceState(
+    {
+      tab: activeTab,
+      view: profileView,
+      video: selectedVideo
+    },
+    ""
+  );
+
+  return () =>
+    window.removeEventListener("popstate", handlePopState);
+
+}, [activeTab, profileView, selectedVideo]);
 
   const changeTab = (tab: "home" | "search" | "profile") => {
     setActiveTab(tab);
