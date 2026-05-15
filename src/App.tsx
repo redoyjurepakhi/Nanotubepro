@@ -1513,6 +1513,8 @@ useEffect(() => {
 
     const isFs = !!document.fullscreenElement;
 
+    setIsFullscreen(isFs);
+
     if (isFs) {
 
       document.body.classList.add("immersive-mode");
@@ -1525,10 +1527,18 @@ useEffect(() => {
 
   };
 
-  document.addEventListener("fullscreenchange", handleFullscreen);
+  document.addEventListener(
+    "fullscreenchange",
+    handleFullscreen
+  );
 
   return () => {
-    document.removeEventListener("fullscreenchange", handleFullscreen);
+
+    document.removeEventListener(
+      "fullscreenchange",
+      handleFullscreen
+    );
+
   };
 
 }, []);
