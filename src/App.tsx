@@ -35,7 +35,7 @@ import {
   SkipBack,
   SkipForward
 } from "lucide-react";
-
+import { GoogleGenAI } from "@google/genai";
 
 // YouTube Video Type
 interface Video {
@@ -62,8 +62,6 @@ interface HistoryItem {
 }
 
 export default function App() {
- const [searchNextPageToken, setSearchNextPageToken] = useState("");
- const [isSearchMode, setIsSearchMode] = useState(false);
   const [activeTab, setActiveTab] = useState<"home" | "search" | "profile">("home");
   const [profileView, setProfileView] = useState<"main" | "settings" | "history" | "watch-later" | "queue" | "playlists" | "setup" | "changelogs" | "about" | "channel">("main");
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null);
@@ -365,10 +363,7 @@ export default function App() {
   }, [searchQuery]);
 
   // Fetch Videos using multiple strategies
-  const fetchVideos = async (
-  query?: string,
-  isAppend = false
-) => {
+  const fetchVideos = async (query?: string, isAppend = false) => {
     if (isAppend) setLoadingMore(true);
     else setLoading(true);
 
@@ -412,16 +407,13 @@ export default function App() {
       // 1. Try YouTube API if key is present
       if (apiKey) {
         console.log("Using YouTube API...");
-        const url = query
-  ? `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=15${searchNextPageToken ? `&pageToken=${searchNextPageToken}` : ""}&q=${encodeURIComponent(query)}&type=video,channel&key=${apiKey}&regionCode=${region}`
-  : `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics,contentDetails&chart=mostPopular&maxResults=12&regionCode=${region}&key=${apiKey}`;
+        const url = query 
+          ? `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=15&q=${encodeURIComponent(query)}&type=video,channel&key=${apiKey}&regionCode=${region}`
+          : `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics,contentDetails&chart=mostPopular&maxResults=12&regionCode=${region}&key=${apiKey}`;
         
         const res = await fetch(url);
         if (res.ok) {
           const data = await res.json();
-          if (query) {
-  setSearchNextPageToken(data.nextPageToken || "");
-}
           results = data.items.map(transformYoutube);
         }
       }
@@ -464,11 +456,7 @@ export default function App() {
       if (isAppend) {
         setVideos(prev => [...prev, ...results]);
       } else {
-        setVideos(prev =>
-  isAppend
-    ? [...prev, ...results]
-    : results
-);
+        setVideos(results);
       }
     } catch (error) {
       console.error("All fetch strategies failed", error);
@@ -533,34 +521,17 @@ export default function App() {
   };
 
   useEffect(() => {
-
-  if (activeTab === "home") {
-
-    if (videos.length === 0) {
+    if (activeTab === "home") {
       fetchVideos();
     }
-
-  }
-
-}, [activeTab, apiKeys]);
+  }, [activeTab, apiKeys]);
 
   // Infinite Scroll Observer
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        if (
-  entries[0].isIntersecting &&
-  !loading &&
-  !loadingMore &&
-  videos.length > 0 &&
-  (activeTab === "home" || activeTab === "search")
-) {
-          fetchVideos(
-  activeTab === "search"
-    ? searchQuery
-    : undefined,
-  true
-);
+        if (entries[0].isIntersecting && !loading && !loadingMore && videos.length > 0 && activeTab === "home") {
+          fetchVideos(searchQuery, true);
         }
       },
       { threshold: 1.0 }
@@ -713,72 +684,15 @@ export default function App() {
         </div>
       </header>
 
-<main
-  ref={mainRef}
-  className="flex-1 overflow-y-auto w-full max-w-7xl mx-auto p-6 md:p-8 custom-scrollbar relative"
-
-  onTouchStart={(e) => {
-
-    if (mainRef.current?.scrollTop === 0) {
-
-      setPullStartY(e.touches[0].clientY);
-
-      setIsPulling(true);
-
-    }
-
-  }}
-
-  onTouchMove={(e) => {
-
-    if (!isPulling) return;
-
-    const distance =
-      e.touches[0].clientY - pullStartY;
-
-    if (distance > 0) {
-
-      setPullDistance(distance);
-
-    }
-
-  }}
-
-  onTouchEnd={() => {
-
-    if (pullDistance > 120) {
-
-      fetchVideos(
-        activeTab === "search"
-          ? searchQuery
-          : undefined
-      );
-
-    }
-
-    setPullDistance(0);
-
-    setIsPulling(false);
-
-  }}
->
-
-      
-        
-      
+      <main 
+        ref={mainRef}
+        className="flex-1 overflow-y-auto w-full max-w-7xl mx-auto p-6 md:p-8 custom-scrollbar relative"
+      >
         {/* PULL TO REFRESH INDICATOR */}
         <motion.div 
           className="absolute top-0 left-0 right-0 flex justify-center py-4 pointer-events-none z-50"
           initial={{ opacity: 0, y: -20 }}
-          animate={{
-  opacity:
-    loading || pullDistance > 40 ? 1 : 0,
-
-  y:
-    loading
-      ? 0
-      : Math.min(pullDistance / 2, 40)
-}}
+          animate={{ opacity: loading ? 1 : 0, y: loading ? 0 : -20 }}
         >
           <div className="bg-brand-red p-2 rounded-full shadow-lg">
             <RefreshCw className="w-5 h-5 text-white animate-spin" />
@@ -1537,10 +1451,7 @@ const PlayerView: React.FC<{
   playlists: Record<string, Video[]>,
   qualityPreference?: string
 }> = ({ video, onClose, related, initialTime, onProgress, onWatchLater, onAddToPlaylist, onQueue, onShare, onNavigateSettings, onChannelClick, playlists, qualityPreference }) => {
- const [pullStartY, setPullStartY] = useState(0);
-const [pullDistance, setPullDistance] = useState(0);
-const [isPulling, setIsPulling] = useState(false);
- const [activeVideo, setActiveVideo] = useState(video);
+  const [activeVideo, setActiveVideo] = useState(video);
   const [isPlaying, setIsPlaying] = useState(true);
   const [currentTime, setCurrentTime] = useState(initialTime || 0);
   const [duration, setDuration] = useState(0);
