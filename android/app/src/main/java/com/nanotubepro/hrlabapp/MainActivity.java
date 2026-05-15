@@ -1,11 +1,12 @@
 package com.nanotubepro.hrlabapp;
-
+import com.nanotubepro.hrlabapp.ImmersivePlugin;
 import android.app.PictureInPictureParams;
 import android.os.Build;
 import android.webkit.WebView;
 import android.view.View;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
+import com.getcapacitor.Plugin;
 
 import com.getcapacitor.BridgeActivity;
 
@@ -93,6 +94,15 @@ public class MainActivity extends BridgeActivity {
 
         enterPiP();
     }
+
+    @Override
+        public void onStart() {
+    
+            super.onStart();
+    
+            registerPlugin(ImmersivePlugin.class);
+    
+        }
 
     @Override
     public void onBackPressed() {
