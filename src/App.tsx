@@ -744,11 +744,11 @@ export default function App() {
 
   }}
 
-  onTouchEnd={async () => {
+  onTouchEnd={() => {
 
     if (pullDistance > 120) {
 
-      await fetchVideos(
+      fetchVideos(
         activeTab === "search"
           ? searchQuery
           : undefined
