@@ -103,21 +103,5 @@ public class MainActivity extends BridgeActivity {
             registerPlugin(ImmersivePlugin.class);
     
         }
-
-    @Override
-    public void onBackPressed() {
-
-        WebView webView = this.bridge.getWebView();
-
-        webView.post(() -> {
-
-            webView.evaluateJavascript(
-                "window.history.back();",
-                null
-            );
-
-            enterPiP();
-
-        });
-    }
+        
 }
