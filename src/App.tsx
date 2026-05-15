@@ -62,6 +62,7 @@ interface HistoryItem {
 }
 
 export default function App() {
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"home" | "search" | "profile">("home");
   const [profileView, setProfileView] = useState<"main" | "settings" | "history" | "watch-later" | "queue" | "playlists" | "setup" | "changelogs" | "about" | "channel">("main");
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null);
@@ -323,6 +324,36 @@ export default function App() {
     document.addEventListener("fullscreenchange", handleFullscreenChange);
     return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
+  
+  //fullscreen keyboard 
+  useEffect(() => {
+
+  const initialHeight = window.innerHeight;
+
+  const handleResize = () => {
+
+    const currentHeight = window.innerHeight;
+
+    // Keyboard usually shrinks height heavily
+    if (currentHeight < initialHeight - 150) {
+
+      setKeyboardOpen(true);
+
+    } else {
+
+      setKeyboardOpen(false);
+
+    }
+
+  };
+
+  window.addEventListener("resize", handleResize);
+
+  return () =>
+    window.removeEventListener("resize", handleResize);
+
+}, []);
+  
 
   // Fetch Suggestions
   useEffect(() => {
@@ -1369,7 +1400,13 @@ export default function App() {
 />
       </main>
 
-      <nav className="h-20 bg-card-dark border-t border-border-dark flex items-center justify-center gap-16 md:gap-32 z-50 backdrop-blur-md shrink-0">
+     <nav
+  className={`h-20 bg-card-dark border-t border-border-dark flex items-center justify-center gap-16 md:gap-32 z-50 backdrop-blur-md shrink-0 transition-all duration-300 ${
+    keyboardOpen
+      ? "translate-y-full opacity-0"
+      : "translate-y-0 opacity-100"
+  }`}
+>
         <NavButton 
           icon={<Play className="w-6 h-6" />} 
           label="Home" 
