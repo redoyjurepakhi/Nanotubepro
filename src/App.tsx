@@ -4,6 +4,7 @@ import { ScreenOrientation } from '@capacitor/screen-orientation';
 import React, { useState, useEffect } from "react";
 import InterstitialAd from "./components/InterstitialAd";
 import { motion, AnimatePresence } from "motion/react";
+import { registerPlugin } from "@capacitor/core";
 import { 
   Settings, 
   Play, 
@@ -62,6 +63,7 @@ interface HistoryItem {
 }
 
 export default function App() {
+  const Immersive = registerPlugin("Immersive");
   const [keyboardOpen, setKeyboardOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"home" | "search" | "profile">("home");
   const [profileView, setProfileView] = useState<"main" | "settings" | "history" | "watch-later" | "queue" | "playlists" | "setup" | "changelogs" | "about" | "channel">("main");
@@ -1507,21 +1509,29 @@ const PlayerView: React.FC<{
   const controlsTimeout = React.useRef<any>(null);
 
 //Fullscreen hide navbar 
-useEffect(() => {
+  useEffect(() => {
 
-  const handleFullscreen = () => {
+  const handleFullscreen = async () => {
 
     const isFs = !!document.fullscreenElement;
 
     setIsFullscreen(isFs);
 
-    if (isFs) {
+    try {
 
-      document.body.classList.add("immersive-mode");
+      if (isFs) {
 
-    } else {
+        await Immersive.enable();
 
-      document.body.classList.remove("immersive-mode");
+      } else {
+
+        await Immersive.disable();
+
+      }
+
+    } catch (err) {
+
+      console.log("Immersive mode error", err);
 
     }
 
