@@ -35,7 +35,7 @@ import {
   SkipBack,
   SkipForward
 } from "lucide-react";
-import { GoogleGenAI } from "@google/genai";
+
 
 // YouTube Video Type
 interface Video {
@@ -761,10 +761,60 @@ export default function App() {
     setIsPulling(false);
 
   }}
+  >
+
+  ref={mainRef}
+  className="flex-1 overflow-y-auto w-full max-w-7xl mx-auto p-6 md:p-8 custom-scrollbar relative"
+
+  onTouchStart={(e) => {
+
+    if (mainRef.current?.scrollTop === 0) {
+
+      setPullStartY(e.touches[0].clientY);
+
+      setIsPulling(true);
+
+    }
+
+  }}
+
+  onTouchMove={(e) => {
+
+    if (!isPulling) return;
+
+    const distance =
+      e.touches[0].clientY - pullStartY;
+
+    if (distance > 0) {
+
+      setPullDistance(distance);
+
+    }
+
+  }}
+
+  onTouchEnd={async () => {
+
+    if (pullDistance > 120) {
+
+      await fetchVideos(
+        activeTab === "search"
+          ? searchQuery
+          : undefined
+      );
+
+    }
+
+    setPullDistance(0);
+
+    setIsPulling(false);
+
+  }}
+
 
       
         className="flex-1 overflow-y-auto w-full max-w-7xl mx-auto p-6 md:p-8 custom-scrollbar relative"
-      >
+      
         {/* PULL TO REFRESH INDICATOR */}
         <motion.div 
           className="absolute top-0 left-0 right-0 flex justify-center py-4 pointer-events-none z-50"
