@@ -62,7 +62,7 @@ private void enableImmersiveMode() {
     }
 
   @Override
-    protected void onResume() {
+    public void onResume() {
         super.onResume();
 
         enableImmersiveMode();
