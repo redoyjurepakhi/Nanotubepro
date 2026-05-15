@@ -1506,6 +1506,33 @@ const PlayerView: React.FC<{
   const ytPlayerContainerRef = React.useRef<HTMLDivElement>(null);
   const controlsTimeout = React.useRef<any>(null);
 
+//Fullscreen hide navbar 
+useEffect(() => {
+
+  const handleFullscreen = () => {
+
+    const isFs = !!document.fullscreenElement;
+
+    if (isFs) {
+
+      document.body.classList.add("immersive-mode");
+
+    } else {
+
+      document.body.classList.remove("immersive-mode");
+
+    }
+
+  };
+
+  document.addEventListener("fullscreenchange", handleFullscreen);
+
+  return () => {
+    document.removeEventListener("fullscreenchange", handleFullscreen);
+  };
+
+}, []);
+
   // Fetch full details when video changes
   useEffect(() => {
     const fetchDetails = async () => {

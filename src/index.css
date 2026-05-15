@@ -16,6 +16,10 @@
   width: 4px;
 }
 
+.immersive-mode {
+  overflow: hidden;
+}
+
 .custom-scrollbar::-webkit-scrollbar-track {
   background: transparent;
 }
