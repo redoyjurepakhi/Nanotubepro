@@ -6,6 +6,7 @@ import android.webkit.WebView;
 import android.view.View;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
+
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
@@ -23,18 +24,21 @@ public class MainActivity extends BridgeActivity {
         return true;
     }
 
-private void enableImmersiveMode() {
+    private void enableImmersiveMode() {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
 
-            getWindow().getInsetsController().hide(
-                WindowInsets.Type.statusBars()
-                | WindowInsets.Type.navigationBars()
-            );
+            if (getWindow().getInsetsController() != null) {
 
-            getWindow().getInsetsController().setSystemBarsBehavior(
-                WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-            );
+                getWindow().getInsetsController().hide(
+                    WindowInsets.Type.statusBars()
+                    | WindowInsets.Type.navigationBars()
+                );
+
+                getWindow().getInsetsController().setSystemBarsBehavior(
+                    WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                );
+            }
 
         } else {
 
@@ -61,15 +65,29 @@ private void enableImmersiveMode() {
         }
     }
 
-  @Override
-    public void onResume() {
-        super.onResume();
+    @Override
+    public void onStart() {
+
+        super.onStart();
 
         enableImmersiveMode();
     }
 
     @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+
+        super.onWindowFocusChanged(hasFocus);
+
+        if (hasFocus) {
+
+            enableImmersiveMode();
+
+        }
+    }
+
+    @Override
     public void onUserLeaveHint() {
+
         super.onUserLeaveHint();
 
         enterPiP();
@@ -78,14 +96,17 @@ private void enableImmersiveMode() {
     @Override
     public void onBackPressed() {
 
-        if (isVideoPlaying()) {
+        WebView webView = this.bridge.getWebView();
+
+        webView.post(() -> {
+
+            webView.evaluateJavascript(
+                "window.history.back();",
+                null
+            );
 
             enterPiP();
 
-        } else {
-
-            super.onBackPressed();
-
-        }
+        });
     }
 }
