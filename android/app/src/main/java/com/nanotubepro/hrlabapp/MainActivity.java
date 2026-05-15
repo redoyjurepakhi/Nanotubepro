@@ -56,35 +56,18 @@ public class MainActivity extends BridgeActivity {
 
     private void enterPiP() {
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+    enableImmersiveMode();
 
-            PictureInPictureParams params =
-                new PictureInPictureParams.Builder().build();
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
 
-            enterPictureInPictureMode(params);
-        }
+        PictureInPictureParams params =
+            new PictureInPictureParams.Builder().build();
+
+        enterPictureInPictureMode(params);
     }
+}
 
-    @Override
-    public void onStart() {
-
-        super.onStart();
-
-        enableImmersiveMode();
-    }
-
-    @Override
-    public void onWindowFocusChanged(boolean hasFocus) {
-
-        super.onWindowFocusChanged(hasFocus);
-
-        if (hasFocus) {
-
-            enableImmersiveMode();
-
-        }
-    }
-
+ 
     @Override
     public void onUserLeaveHint() {
 
