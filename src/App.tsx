@@ -62,6 +62,8 @@ interface HistoryItem {
 }
 
 export default function App() {
+ const [searchNextPageToken, setSearchNextPageToken] = useState("");
+ const [isSearchMode, setIsSearchMode] = useState(false);
   const [activeTab, setActiveTab] = useState<"home" | "search" | "profile">("home");
   const [profileView, setProfileView] = useState<"main" | "settings" | "history" | "watch-later" | "queue" | "playlists" | "setup" | "changelogs" | "about" | "channel">("main");
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null);
@@ -363,7 +365,10 @@ export default function App() {
   }, [searchQuery]);
 
   // Fetch Videos using multiple strategies
-  const fetchVideos = async (query?: string, isAppend = false) => {
+  const fetchVideos = async (
+  query?: string,
+  isAppend = false
+) => {
     if (isAppend) setLoadingMore(true);
     else setLoading(true);
 
@@ -407,13 +412,16 @@ export default function App() {
       // 1. Try YouTube API if key is present
       if (apiKey) {
         console.log("Using YouTube API...");
-        const url = query 
-          ? `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=15&q=${encodeURIComponent(query)}&type=video,channel&key=${apiKey}&regionCode=${region}`
-          : `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics,contentDetails&chart=mostPopular&maxResults=12&regionCode=${region}&key=${apiKey}`;
+        const url = query
+  ? `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=15${searchNextPageToken ? `&pageToken=${searchNextPageToken}` : ""}&q=${encodeURIComponent(query)}&type=video,channel&key=${apiKey}&regionCode=${region}`
+  : `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics,contentDetails&chart=mostPopular&maxResults=12&regionCode=${region}&key=${apiKey}`;
         
         const res = await fetch(url);
         if (res.ok) {
           const data = await res.json();
+          if (query) {
+  setSearchNextPageToken(data.nextPageToken || "");
+}
           results = data.items.map(transformYoutube);
         }
       }
@@ -456,7 +464,11 @@ export default function App() {
       if (isAppend) {
         setVideos(prev => [...prev, ...results]);
       } else {
-        setVideos(results);
+        setVideos(prev =>
+  isAppend
+    ? [...prev, ...results]
+    : results
+);
       }
     } catch (error) {
       console.error("All fetch strategies failed", error);
@@ -530,8 +542,19 @@ export default function App() {
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && !loading && !loadingMore && videos.length > 0 && activeTab === "home") {
-          fetchVideos(searchQuery, true);
+        if (
+  entries[0].isIntersecting &&
+  !loading &&
+  !loadingMore &&
+  videos.length > 0 &&
+  (activeTab === "home" || activeTab === "search")
+) {
+          fetchVideos(
+  activeTab === "search"
+    ? searchQuery
+    : undefined,
+  true
+);
         }
       },
       { threshold: 1.0 }
