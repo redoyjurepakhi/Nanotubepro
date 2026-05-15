@@ -713,8 +713,9 @@ export default function App() {
         </div>
       </header>
 
-      <main
+<main
   ref={mainRef}
+  className="flex-1 overflow-y-auto w-full max-w-7xl mx-auto p-6 md:p-8 custom-scrollbar relative"
 
   onTouchStart={(e) => {
 
@@ -760,6 +761,8 @@ export default function App() {
     setIsPulling(false);
 
   }}
+
+      
         className="flex-1 overflow-y-auto w-full max-w-7xl mx-auto p-6 md:p-8 custom-scrollbar relative"
       >
         {/* PULL TO REFRESH INDICATOR */}
