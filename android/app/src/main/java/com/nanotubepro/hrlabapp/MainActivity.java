@@ -10,8 +10,15 @@ public class MainActivity extends BridgeActivity {
 
     private boolean isVideoPlaying() {
 
-        return true;
+        WebView webView = this.bridge.getWebView();
 
+        String js =
+            "(function() {" +
+            "const v = document.querySelector('video');" +
+            "return v && !v.paused;" +
+            "})()";
+
+        return true;
     }
 
     private void enterPiP() {
@@ -22,7 +29,6 @@ public class MainActivity extends BridgeActivity {
                 new PictureInPictureParams.Builder().build();
 
             enterPictureInPictureMode(params);
-
         }
     }
 
@@ -36,17 +42,14 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onBackPressed() {
 
-        WebView webView = this.bridge.getWebView();
-
-        webView.post(() -> {
-
-            webView.evaluateJavascript(
-                "window.history.back();",
-                null
-            );
+        if (isVideoPlaying()) {
 
             enterPiP();
 
-        });
+        } else {
+
+            super.onBackPressed();
+
+        }
     }
 }
