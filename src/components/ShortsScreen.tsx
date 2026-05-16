@@ -34,12 +34,11 @@ const ShortsScreen: React.FC<ShortsScreenProps> = ({ videos }) => {
           "
         >
 
-          <iframe
-            src={`https://www.youtube.com/embed/${video.id?.videoId}?autoplay=0&playsinline=1`}
-            className="w-full h-full"
-            allow="autoplay; encrypted-media"
-            allowFullScreen
-          />
+          <img
+  src={video.snippet?.thumbnails?.high?.url}
+  className="w-full h-full object-cover"
+  alt={video.snippet?.title}
+/>
 
           <div
             className="
