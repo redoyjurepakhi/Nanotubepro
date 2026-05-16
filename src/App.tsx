@@ -4,6 +4,7 @@ import { ScreenOrientation } from '@capacitor/screen-orientation';
 import React, { useState, useEffect } from "react";
 import InterstitialAd from "./components/InterstitialAd";
 import { motion, AnimatePresence } from "motion/react";
+import ShortsScreen from "./components/ShortsScreen";
 import { registerPlugin } from "@capacitor/core";
 import { 
   Settings, 
@@ -65,7 +66,7 @@ interface HistoryItem {
 export default function App() {
   const Immersive = registerPlugin("Immersive");
   const [keyboardOpen, setKeyboardOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<"home" | "search" | "profile">("home");
+  const [activeTab, setActiveTab] = useState<"home" | "search" | "shorts" | "profile">("home");
   const [profileView, setProfileView] = useState<"main" | "settings" | "history" | "watch-later" | "queue" | "playlists" | "setup" | "changelogs" | "about" | "channel">("main");
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null);
   const [channelData, setChannelData] = useState<Partial<Video> | null>(null);
@@ -159,6 +160,11 @@ export default function App() {
         return;
 
       }
+      
+      //Shortspage
+      {activeTab === "shorts" && (
+  <ShortsScreen videos={videos} />
+)}
 
       // SEARCH OR PROFILE -> HOME
       if (
@@ -1422,6 +1428,12 @@ export default function App() {
   onClick={() => {
     changeTab("search");
   }}
+/>
+<NavButton
+  icon={<Play className="w-6 h-6" />}
+  label="Shorts"
+  active={activeTab === "shorts"}
+  onClick={() => changeTab("shorts")}
 />
         <NavButton 
   icon={<User className="w-6 h-6" />} 
