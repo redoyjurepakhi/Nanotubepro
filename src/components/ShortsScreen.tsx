@@ -21,7 +21,7 @@ const ShortsScreen: React.FC<ShortsScreenProps> = ({ videos }) => {
       {videos.map((video, index) => (
 
         <div
-          key={video.id || index}
+          key={video.id?.videoId || index}
           className="
             h-screen
             w-full
@@ -35,7 +35,7 @@ const ShortsScreen: React.FC<ShortsScreenProps> = ({ videos }) => {
         >
 
           <iframe
-            src={`https://www.youtube.com/embed/${video.id}?autoplay=0&playsinline=1`}
+            src={`https://www.youtube.com/embed/${video.id?.videoId}?autoplay=0&playsinline=1`}
             className="w-full h-full"
             allow="autoplay; encrypted-media"
             allowFullScreen
@@ -53,11 +53,11 @@ const ShortsScreen: React.FC<ShortsScreenProps> = ({ videos }) => {
           >
 
             <h2 className="font-bold text-lg line-clamp-2">
-              {video.title}
+              {video.snippet?.title}
             </h2>
 
             <p className="text-sm opacity-80 mt-1">
-              {video.channel}
+              {video.snippet?.channelTitle}
             </p>
 
           </div>
