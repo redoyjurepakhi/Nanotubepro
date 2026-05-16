@@ -160,16 +160,13 @@ export default function App() {
         return;
 
       }
-      
-      //Shortspage
-      {activeTab === "shorts" && (
-  <ShortsScreen videos={videos} />
-)}
+     
 
       // SEARCH OR PROFILE -> HOME
       if (
         activeTab === "search" ||
-        activeTab === "profile"
+        activeTab === "profile" ||
+        activeTab === "shorts"
       ) {
 
         setActiveTab("home");
@@ -213,7 +210,7 @@ export default function App() {
 
 }, [activeTab, profileView, selectedVideo]);
 
-  const changeTab = (tab: "home" | "search" | "profile") => {
+  const changeTab = (tab: "home" | "search" | "shorts" | "profile") => {
     setActiveTab(tab);
     setProfileView("main");
     window.history.pushState({ tab, view: "main", video: null }, "");
@@ -801,7 +798,11 @@ export default function App() {
                 </>
               )}
             </motion.div>
-          ) : activeTab === "search" ? (
+          ) : activeTab === "shorts" ? (
+
+  <ShortsScreen videos={videos} />
+
+) : activeTab === "search" ? (
 
   <motion.div
     key="search"
