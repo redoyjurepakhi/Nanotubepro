@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { App as CapApp } from '@capacitor/app';
-import { StatusBar } from '@capacitor/status-bar';
 import { Capacitor } from '@capacitor/core';
+import { safeFetch } from "./lib/fetchUtils";
 import ShortsScreen from "./components/ShortsScreen";
 import SearchScreen from "./components/SearchScreen";
 import { Video, VideoCard, SafeImage, HistoryCard, VideoMenu } from "./components/Common";
@@ -128,9 +128,6 @@ export default function App() {
           if (orientation && orientation.unlock) {
             try { orientation.unlock(); } catch (e) {}
           }
-          if (typeof StatusBar !== 'undefined' && StatusBar.show) {
-            StatusBar.show();
-          }
           return;
         }
 
@@ -210,21 +207,15 @@ export default function App() {
       const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
       if (document.fullscreenElement && isMobile) {
         try {
-          if (Capacitor.getPlatform() !== 'web') {
-            StatusBar.hide();
-          }
           const orientation = screen.orientation as any;
           if (orientation && orientation.lock) {
             orientation.lock("landscape").catch(() => {});
           }
         } catch (e) {
-          console.warn("Fullscreen/Orientation logic failed", e);
+          console.warn("Orientation logic failed", e);
         }
       } else if (isMobile) {
         try {
-          if (Capacitor.getPlatform() !== 'web') {
-            StatusBar.show();
-          }
           const orientation = screen.orientation as any;
           if (orientation && orientation.unlock) {
             orientation.unlock();
@@ -353,7 +344,7 @@ export default function App() {
           }
         }
         
-        const res = await fetch(url);
+        const res = await safeFetch(url);
         if (res.ok) {
           const data = await res.json();
           results = data.items.map(transformYoutube).sort(() => Math.random() - 0.5);
@@ -375,7 +366,7 @@ export default function App() {
             : `https://pipedapi.kavin.rocks/search?q=${randomKeyword}&filter=videos`;
         }
         
-        const res = await fetch(url);
+        const res = await safeFetch(url);
         if (res.ok) {
           const data = await res.json();
           const items = Array.isArray(data) ? data : (data.relatedStreams || []);
@@ -386,21 +377,39 @@ export default function App() {
       // 3. Last Resort: Gemini Simulation
       if (results.length === 0) {
         console.log("Using Gemini Fallback...");
-        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+        const geminiKey = process.env.GEMINI_API_KEY;
+        if (!geminiKey) {
+            console.error("Gemini API key is missing");
+            throw new Error("Failed to fetch and no Gemini key available");
+        }
+        const ai = new GoogleGenAI({ apiKey: geminiKey });
         const prompt = `Provide a JSON array of 12 distinct, PUBLIC, AND EMBEDDABLE YouTube video IDs ${query ? `related to "${query}"` : `that are trending in ${region} right now`}. 
         Each object MUST have: id (ACTUAL working video ID), title, channel, views, time, duration. Return ONLY the JSON array.`;
         
-        const response = await ai.models.generateContent({
-          model: "gemini-3-flash-preview",
-          contents: [{ parts: [{ text: prompt }] }],
-        });
-        
-        const text = response.text;
-        const cleanedText = text.replace(/```json|```/g, "").trim();
-        results = JSON.parse(cleanedText).map((v: any) => ({
-          ...v,
-          thumbnail: `https://img.youtube.com/vi/${v.id}/mqdefault.jpg`
-        }));
+        try {
+          const response = await ai.models.generateContent({
+            model: "gemini-3-flash-preview",
+            contents: [{ parts: [{ text: prompt }] }],
+          });
+          
+          let text = response.text;
+          // Filter out markdown code blocks if any
+          text = text.replace(/```json\n?|```/g, "").trim();
+          
+          const parsed = JSON.parse(text);
+          results = (Array.isArray(parsed) ? parsed : []).map((v: any) => ({
+            id: v.id || "dQw4w9WgXcQ",
+            title: v.title || "Unknown Title",
+            channel: v.channel || "Unknown Channel",
+            views: v.views || "1M",
+            time: v.time || "Recently",
+            duration: v.duration || "10:00",
+            thumbnail: `https://img.youtube.com/vi/${v.id || "dQw4w9WgXcQ"}/mqdefault.jpg`
+          }));
+        } catch (geminiError) {
+          console.error("Gemini Fallback failed:", geminiError);
+          throw geminiError;
+        }
       }
 
       if (isAppend) {
@@ -430,7 +439,7 @@ export default function App() {
 
     try {
       // Fetch channel details
-      const chanRes = await fetch(`https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics,brandingSettings&id=${channelId}&key=${apiKey}`);
+      const chanRes = await safeFetch(`https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics,brandingSettings&id=${channelId}&key=${apiKey}`);
       if (chanRes.ok) {
         const chanData = await chanRes.json();
         const item = chanData.items?.[0];
@@ -446,7 +455,7 @@ export default function App() {
       }
 
       // Fetch channel videos
-      const videosRes = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&maxResults=20&order=date&type=video&key=${apiKey}`);
+      const videosRes = await safeFetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&maxResults=20&order=date&type=video&key=${apiKey}`);
       if (videosRes.ok) {
         const data = await videosRes.json();
         const transformed = data.items.map((item: any) => {
@@ -1475,7 +1484,7 @@ const PlayerView: React.FC<{
       setLoadingDetails(true);
       try {
         const videoUrl = `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&id=${activeVideo.id}&key=${apiKey}`;
-        const res = await fetch(videoUrl);
+        const res = await safeFetch(videoUrl);
         if (res.ok) {
           const data = await res.json();
           if (data.items && data.items[0]) {
@@ -1487,7 +1496,7 @@ const PlayerView: React.FC<{
             let chanThumb = "";
             try {
               const chanUrl = `https://www.googleapis.com/youtube/v3/channels?part=snippet&id=${snippet.channelId}&key=${apiKey}`;
-              const chanRes = await fetch(chanUrl);
+              const chanRes = await safeFetch(chanUrl);
               if (chanRes.ok) {
                 const chanData = await chanRes.json();
                 chanThumb = chanData.items?.[0]?.snippet?.thumbnails?.default?.url || "";
@@ -1626,16 +1635,9 @@ const PlayerView: React.FC<{
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
-      containerRef.current?.requestFullscreen({ navigationUI: 'hide' }).catch(() => {});
+      containerRef.current?.requestFullscreen().catch(() => {});
       setIsFullscreen(true);
       
-      // Immersive mode for Capacitor
-      try {
-        if (Capacitor.getPlatform() !== 'web') {
-          StatusBar.hide();
-        }
-      } catch (e) {}
-
       // Force landscape
       try {
         const orientation = screen.orientation as any;
@@ -1647,13 +1649,6 @@ const PlayerView: React.FC<{
       document.exitFullscreen();
       setIsFullscreen(false);
       
-      // Restore status bar
-      try {
-        if (Capacitor.getPlatform() !== 'web') {
-          StatusBar.show();
-        }
-      } catch (e) {}
-
       try {
         const orientation = screen.orientation as any;
         if (orientation && orientation.unlock) {

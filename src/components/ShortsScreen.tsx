@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { safeFetch } from "../lib/fetchUtils";
 import { 
   Play, 
   Pause, 
@@ -58,7 +59,7 @@ export default function ShortsScreen() {
       const pageToken = Math.random() > 0.5 ? "" : "&pageToken=CBQQAA"; // Very basic randomization of page
       
       const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=25&q=${randomKeyword}+%23shorts&type=video&videoDuration=short&key=${apiKey}&regionCode=${region}${pageToken}`;
-      const res = await fetch(url);
+      const res = await safeFetch(url);
       
       if (!res.ok) {
         throw new Error("Failed to fetch shorts");
@@ -72,7 +73,7 @@ export default function ShortsScreen() {
 
       // Need to fetch video stats for likes/views
       const videoIds = shuffled.map((i: any) => i.id.videoId).join(",");
-      const statsRes = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=statistics&id=${videoIds}&key=${apiKey}`);
+      const statsRes = await safeFetch(`https://www.googleapis.com/youtube/v3/videos?part=statistics&id=${videoIds}&key=${apiKey}`);
       const statsData = await statsRes.json();
       const statsMap = (statsData.items || []).reduce((acc: any, curr: any) => {
         acc[curr.id] = curr.statistics;

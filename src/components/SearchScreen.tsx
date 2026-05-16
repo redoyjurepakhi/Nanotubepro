@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ArrowLeft, Search, Mic, RefreshCw, History, ShieldAlert, Plus } from "lucide-react";
 import { Video, VideoCard, SafeImage } from "./Common";
+import { safeFetch } from "../lib/fetchUtils";
 
 interface SearchScreenProps {
   apiKeys: string;
@@ -56,7 +57,7 @@ export default function SearchScreen({
 
       try {
         const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=5&q=${encodeURIComponent(query)}&type=video,channel&key=${apiKey}&regionCode=${region}`;
-        const res = await fetch(url);
+        const res = await safeFetch(url);
         if (res.ok) {
           const data = await res.json();
           const transformed = data.items.map((item: any): Video => {
@@ -110,7 +111,7 @@ export default function SearchScreen({
     try {
       const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=15&q=${encodeURIComponent(searchTerm)}&type=video,channel&key=${apiKey}&regionCode=${region}${isAppend && nextPageToken ? `&pageToken=${nextPageToken}` : ''}`;
       
-      const res = await fetch(url);
+      const res = await safeFetch(url);
       if (res.ok) {
         const data = await res.json();
         setNextPageToken(data.nextPageToken || null);
