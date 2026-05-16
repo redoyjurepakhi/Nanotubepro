@@ -31,8 +31,10 @@ export default function SearchScreen({
   const [query, setQuery] = useState("");
   const [instantResults, setInstantResults] = useState<Video[]>([]);
   const [searchHistory, setSearchHistory] = useState<string[]>(() => {
-    const saved = localStorage.getItem("nanotube_search_history");
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem("nanotube_search_history");
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
   });
   const [results, setResults] = useState<Video[]>([]);
   const [loading, setLoading] = useState(false);

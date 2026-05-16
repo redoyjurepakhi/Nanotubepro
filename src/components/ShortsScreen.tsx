@@ -120,8 +120,12 @@ export default function ShortsScreen() {
     } else {
       // Fallback: Copy to clipboard
       try {
-        await navigator.clipboard.writeText(shareUrl);
-        alert("Link copied to clipboard!");
+        if (navigator.clipboard) {
+          await navigator.clipboard.writeText(shareUrl);
+          alert("Link copied to clipboard!");
+        } else {
+          alert("Clipboard not available - share manually");
+        }
       } catch (err) {
         console.error("Fallback sharing failed:", err);
       }
@@ -213,8 +217,13 @@ const ShortVideoPlayer: React.FC<ShortVideoPlayerProps> = ({ video, onNext, onPr
     if (!(window as any).YT) {
       const tag = document.createElement('script');
       tag.src = "https://www.youtube.com/iframe_api";
+      tag.crossOrigin = "anonymous";
       const firstScriptTag = document.getElementsByTagName('script')[0];
-      firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+      if (firstScriptTag && firstScriptTag.parentNode) {
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+      } else {
+        document.head.appendChild(tag);
+      }
     }
 
     const initPlayer = () => {

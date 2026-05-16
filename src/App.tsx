@@ -67,16 +67,22 @@ export default function App() {
   const [qualityPreference, setQualityPreference] = useState(() => localStorage.getItem("nanotube_quality") || "auto");
   const [aggressiveCaching, setAggressiveCaching] = useState(() => localStorage.getItem("nanotube_aggressive_caching") === "true");
   const [history, setHistory] = useState<HistoryItem[]>(() => {
-    const saved = localStorage.getItem("nanotube_history");
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem("nanotube_history");
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
   });
   const [watchLater, setWatchLater] = useState<Video[]>(() => {
-    const saved = localStorage.getItem("nanotube_watch_later");
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem("nanotube_watch_later");
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
   });
   const [playlists, setPlaylists] = useState<Record<string, Video[]>>(() => {
-    const saved = localStorage.getItem("nanotube_playlists");
-    return saved ? JSON.parse(saved) : { "My Favorites": [] };
+    try {
+      const saved = localStorage.getItem("nanotube_playlists");
+      return saved ? JSON.parse(saved) : { "My Favorites": [] };
+    } catch { return { "My Favorites": [] }; }
   });
   const [newPlaylistName, setNewPlaylistName] = useState("");
   const [queue, setQueue] = useState<Video[]>([]);
@@ -112,38 +118,43 @@ export default function App() {
     window.history.replaceState({ tab: activeTab, view: profileView, video: selectedVideo }, "");
 
     // Capacitor Back Button Handling
-    const backListener = CapApp.addListener('backButton', () => {
-      if (isFullscreen) {
-        setIsFullscreen(false);
-        if (screen.orientation && (screen.orientation as any).unlock) {
-          try { (screen.orientation as any).unlock(); } catch (e) {}
+    let backListenerPromise: Promise<any> | null = null;
+    
+    if (Capacitor.isNativePlatform()) {
+      backListenerPromise = CapApp.addListener('backButton', () => {
+        if (isFullscreen) {
+          setIsFullscreen(false);
+          const orientation = screen.orientation as any;
+          if (orientation && orientation.unlock) {
+            try { orientation.unlock(); } catch (e) {}
+          }
+          if (typeof StatusBar !== 'undefined' && StatusBar.show) {
+            StatusBar.show();
+          }
+          return;
         }
-        if (typeof StatusBar !== 'undefined' && StatusBar.show) {
-          StatusBar.show();
-        }
-        return;
-      }
 
-      if (selectedVideo && !isMinimized) {
-        // Instead of going back in history, we just minimize the UI
-        setIsMinimized(true);
-      } else if (selectedVideo && isMinimized) {
-        // If already minimized, we go back in history (which will trigger popstate and set selectedVideo(null))
-        window.history.back();
-      } else if (profileView !== "main") {
-        setProfileView("main");
-        window.history.back();
-      } else if (activeTab !== "home") {
-        setActiveTab("home");
-        window.history.back();
-      } else {
-        CapApp.exitApp();
-      }
-    });
+        if (selectedVideo && !isMinimized) {
+          setIsMinimized(true);
+        } else if (selectedVideo && isMinimized) {
+          window.history.back();
+        } else if (profileView !== "main") {
+          setProfileView("main");
+          window.history.back();
+        } else if (activeTab !== "home") {
+          setActiveTab("home");
+          window.history.back();
+        } else {
+          CapApp.exitApp();
+        }
+      });
+    }
 
     return () => {
       window.removeEventListener("popstate", handlePopState);
-      backListener.then(l => l.remove());
+      if (backListenerPromise) {
+        backListenerPromise.then(l => l?.remove?.()).catch(() => {});
+      }
     };
   }, [selectedVideo, profileView, activeTab, isMinimized, isFullscreen]);
 
@@ -1507,8 +1518,13 @@ const PlayerView: React.FC<{
     if (!(window as any).YT) {
       const tag = document.createElement('script');
       tag.src = "https://www.youtube.com/iframe_api";
+      tag.crossOrigin = "anonymous";
       const firstScriptTag = document.getElementsByTagName('script')[0];
-      firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+      if (firstScriptTag && firstScriptTag.parentNode) {
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+      } else {
+        document.head.appendChild(tag);
+      }
     }
 
     const initPlayer = () => {

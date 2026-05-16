@@ -134,9 +134,14 @@ export const VideoMenu: React.FC<{
                     <button 
                       onClick={(e) => { 
                         e.stopPropagation(); 
-                        navigator.clipboard.writeText(`https://www.youtube.com/watch?v=${video.id}`);
-                        setIsOpen(false);
-                        alert("Link copied!");
+                        if (navigator.clipboard) {
+                          navigator.clipboard.writeText(`https://www.youtube.com/watch?v=${video.id}`).catch(() => {});
+                          setIsOpen(false);
+                          alert("Link copied!");
+                        } else {
+                          setIsOpen(false);
+                          alert("Share manually - clipboard not available");
+                        }
                       }}
                       className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 text-xs font-bold text-white/80 transition-colors"
                     >
