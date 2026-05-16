@@ -21,7 +21,7 @@ const ShortsScreen: React.FC<ShortsScreenProps> = ({ videos }) => {
       {videos.map((video, index) => (
 
         <div
-          key={video.id?.videoId || index}
+          key={video?.id?.videoId || index}
           className="
             h-screen
             w-full
@@ -31,14 +31,31 @@ const ShortsScreen: React.FC<ShortsScreenProps> = ({ videos }) => {
             items-center
             justify-center
             bg-black
+            overflow-hidden
           "
         >
 
           <img
-  src={video.snippet?.thumbnails?.high?.url}
-  className="w-full h-full object-cover"
-  alt={video.snippet?.title}
-/>
+            src={
+              video?.snippet?.thumbnails?.maxres?.url ||
+              video?.snippet?.thumbnails?.high?.url ||
+              video?.snippet?.thumbnails?.medium?.url ||
+              video?.snippet?.thumbnails?.default?.url
+            }
+            className="w-full h-full object-cover"
+            alt={video?.snippet?.title || "Short"}
+          />
+
+          <div
+            className="
+              absolute
+              inset-0
+              bg-gradient-to-t
+              from-black/80
+              via-transparent
+              to-transparent
+            "
+          />
 
           <div
             className="
@@ -52,11 +69,11 @@ const ShortsScreen: React.FC<ShortsScreenProps> = ({ videos }) => {
           >
 
             <h2 className="font-bold text-lg line-clamp-2">
-              {video.snippet?.title}
+              {video?.snippet?.title || "Untitled Video"}
             </h2>
 
             <p className="text-sm opacity-80 mt-1">
-              {video.snippet?.channelTitle}
+              {video?.snippet?.channelTitle || "Unknown Channel"}
             </p>
 
           </div>
