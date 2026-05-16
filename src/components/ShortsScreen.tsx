@@ -10,17 +10,7 @@ const ShortsScreen: React.FC<ShortsScreenProps> = ({
   onVideoSelect
 }) => {
 
-  const shortsVideos = videos.filter((video) => {
-
-    const title =
-      video?.snippet?.title?.toLowerCase() || "";
-
-    return (
-      title.includes("#shorts") ||
-      title.includes("shorts")
-    );
-
-  });
+  const shortsVideos = videos;
 
   return (
 
@@ -110,25 +100,6 @@ const ShortsScreen: React.FC<ShortsScreenProps> = ({
         ))}
 
       </div>
-
-      {shortsVideos.length === 0 && (
-
-        <div
-          className="
-            flex
-            items-center
-            justify-center
-            h-full
-            text-zinc-400
-            text-lg
-          "
-        >
-
-          No Shorts Found
-
-        </div>
-
-      )}
 
     </div>
 
