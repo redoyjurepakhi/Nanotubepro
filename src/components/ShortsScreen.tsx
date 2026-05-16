@@ -2,17 +2,44 @@ import React from "react";
 
 const ShortsScreen: React.FC = () => {
 
+  const openShorts = () => {
+    window.open(
+      "https://m.youtube.com/shorts",
+      "_self"
+    );
+  };
+
   return (
 
-    <div className="w-full h-full bg-black overflow-hidden">
+    <div
+      className="
+        w-full
+        h-full
+        bg-black
+        flex
+        items-center
+        justify-center
+        px-6
+      "
+    >
 
-      <iframe
-        src="https://m.youtube.com/shorts"
-        title="NanoTube Shorts"
-        className="w-full h-full border-0"
-        allow="autoplay; encrypted-media"
-        allowFullScreen
-      />
+      <button
+        onClick={openShorts}
+        className="
+          bg-red-600
+          text-white
+          px-8
+          py-4
+          rounded-2xl
+          text-xl
+          font-bold
+          active:scale-95
+        "
+      >
+
+        Open YouTube Shorts
+
+      </button>
 
     </div>
 
