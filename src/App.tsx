@@ -1,5 +1,5 @@
 import { App } from "@capacitor/app";
-import { GoogleGenAI } from "@google/genai";
+
 import { ScreenOrientation } from '@capacitor/screen-orientation';
 import React, { useState, useEffect } from "react";
 import InterstitialAd from "./components/InterstitialAd";
