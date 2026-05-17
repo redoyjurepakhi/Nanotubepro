@@ -67,11 +67,6 @@ export default function App() {
   const [apiKeys, setApiKeys] = useState<string>(() => localStorage.getItem("nanotube_api_keys") || "");
   const [region, setRegion] = useState<string>(() => localStorage.getItem("nanotube_region") || "US");
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
-  const videoCounter = useRef(0);
-
-const nextVideoAd = useRef(
-  Math.floor(Math.random() * 3) + 2
-);
   const [isMinimized, setIsMinimized] = useState(false);
   const [dataSaver, setDataSaver] = useState(() => localStorage.getItem("nanotube_data_saver") === "true");
   const [qualityPreference, setQualityPreference] = useState(() => localStorage.getItem("nanotube_quality") || "auto");
@@ -183,39 +178,14 @@ const nextVideoAd = useRef(
   };
 
   const selectVideo = (v: Video | null) => {
-
-  if (v) {
-
-    videoCounter.current += 1;
-
-    if (videoCounter.current >= nextVideoAd.current) {
-
-      showInterstitialAd();
-
-      videoCounter.current = 0;
-
-      nextVideoAd.current =
-        Math.floor(Math.random() * 3) + 2;
+    setSelectedVideo(v);
+    setIsMinimized(false);
+    if (v) {
+      window.history.pushState({ tab: activeTab, view: profileView, video: v.id }, "");
+    } else {
+      if (selectedVideo) window.history.back();
     }
-  }
-
-  setSelectedVideo(v);
-
-  setIsMinimized(false);
-
-  if (v) {
-
-    window.history.pushState({
-      tab: activeTab,
-      view: profileView,
-      video: v.id
-    }, "");
-
-  } else {
-
-    if (selectedVideo) window.history.back();
-  }
-};
+  };
 
   // Sync state to localStorage
   useEffect(() => {
