@@ -43,48 +43,10 @@ export default function SearchScreen({
   const [nextPageToken, setNextPageToken] = useState<string | null>(null);
   const [isResultMode, setIsResultMode] = useState(false);
 
-  // Real YouTube API Search for Live Instant Results (Suggestions)
+  // Real YouTube API Search for Live Instant Results (Suggestions) - DISABLED to save quota
   useEffect(() => {
-    if (!query.trim() || isResultMode) {
-      setInstantResults([]);
-      return;
-    }
-
-    const timer = setTimeout(async () => {
-      const keys = apiKeys.split(",").map(k => k.trim()).filter(k => k);
-      const apiKey = keys.length > 0 ? keys[Math.floor(Math.random() * keys.length)] : null;
-      if (!apiKey) return;
-
-      try {
-        const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=5&q=${encodeURIComponent(query)}&type=video,channel&key=${apiKey}&regionCode=${region}`;
-        const res = await safeFetch(url);
-        if (res.ok) {
-          const data = await res.json();
-          const transformed = data.items.map((item: any): Video => {
-            const type = item.id?.kind === "youtube#channel" ? "channel" : "video";
-            const id = item.id?.videoId || item.id?.channelId || item.id;
-            const snippet = item.snippet;
-            return {
-              id,
-              type,
-              title: snippet.title,
-              channel: type === "channel" ? snippet.title : snippet.channelTitle,
-              channelId: snippet.channelId || id,
-              views: type === "channel" ? "Channel" : "Live",
-              time: snippet.publishedAt ? new Date(snippet.publishedAt).toLocaleDateString() : "Recently",
-              thumbnail: type === "channel" ? snippet.thumbnails?.high?.url || snippet.thumbnails?.default?.url : `https://img.youtube.com/vi/${id}/mqdefault.jpg`,
-              duration: type === "channel" ? "" : "Live"
-            };
-          });
-          setInstantResults(transformed);
-        }
-      } catch (e) {
-        console.warn("Live API suggestions failed", e);
-      }
-    }, 500); // 500ms debounce to save quota
-
-    return () => clearTimeout(timer);
-  }, [query, isResultMode, apiKeys, region]);
+    setInstantResults([]);
+  }, [query]);
 
   const performSearch = async (searchTerm: string, isAppend = false) => {
     if (!searchTerm.trim()) return;
@@ -172,7 +134,7 @@ export default function SearchScreen({
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 20 }}
-      className="fixed inset-0 bg-bg-dark z-[200] flex flex-col overflow-hidden"
+      className="fixed inset-0 bg-bg-dark z-[200] flex flex-col overflow-hidden pt-[env(safe-area-inset-top)]"
     >
       {/* SEARCH HEADER */}
       <div className="flex items-center gap-2 p-3 bg-[#0A0A0A] border-b border-white/5">
@@ -248,45 +210,7 @@ export default function SearchScreen({
               </button>
             ))}
 
-            {/* INSTANT RESULTS (Visible when user is typing) */}
-            {query && (
-              <div className="p-4 space-y-4">
-                <div className="flex items-center justify-between mb-2">
-                   <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/20">Instant Results</span>
-                   <button onClick={() => performSearch(query)} className="text-[10px] font-black uppercase tracking-widest text-brand-red hover:underline">See All</button>
-                </div>
-                {instantResults.length > 0 ? (
-                  <div className="space-y-4">
-                    {instantResults.map((v, idx) => (
-                      <div 
-                        key={`instant-${v.id}-${idx}`}
-                        onClick={() => onSelectVideo(v)}
-                        className="flex gap-4 p-2 hover:bg-white/5 rounded-2xl cursor-pointer group transition-all active:scale-[0.98]"
-                      >
-                        <div className="w-32 aspect-video bg-white/5 rounded-xl overflow-hidden shrink-0 border border-white/5">
-                           <SafeImage src={v.thumbnail} alt={v.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                        </div>
-                        <div className="flex-1 min-w-0 flex flex-col justify-center">
-                           <h4 className="text-[13px] font-bold text-white/90 line-clamp-2 leading-snug group-hover:text-brand-red transition-colors" dangerouslySetInnerHTML={{ __html: v.title }}></h4>
-                           <p className="text-[10px] text-white/30 font-black uppercase tracking-widest mt-1">{v.channel}</p>
-                        </div>
-                      </div>
-                    ))}
-                    <button 
-                      onClick={() => performSearch(query)}
-                      className="w-full py-4 text-[13px] font-bold text-white/40 hover:text-white bg-white/5 rounded-2xl border border-dashed border-white/10 transition-all flex items-center justify-center gap-2"
-                    >
-                      <Search className="w-4 h-4" /> Search for "{query}"
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-12 opacity-20">
-                     <RefreshCw className="w-5 h-5 animate-spin mb-2" />
-                     <p className="text-[10px] font-black uppercase">Fetching nano matches...</p>
-                  </div>
-                )}
-              </div>
-            )}
+            {/* INSTANT RESULTS DISABLED */}
 
             {!query && searchHistory.length === 0 && (
               <div className="flex flex-col items-center justify-center py-32 text-center opacity-20 italic">

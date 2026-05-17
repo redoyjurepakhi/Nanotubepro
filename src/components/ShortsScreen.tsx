@@ -163,8 +163,8 @@ export default function ShortsScreen() {
   }
 
   return (
-    <div className="h-full bg-black relative overflow-hidden flex flex-col">
-      <div className="absolute top-4 left-6 z-50 pointer-events-none">
+    <div className="h-full bg-black relative overflow-hidden flex flex-col pt-[env(safe-area-inset-top)]">
+      <div className="absolute top-[calc(1rem+env(safe-area-inset-top))] left-6 z-50 pointer-events-none">
         <span className="text-lg font-black italic tracking-tighter flex items-center gap-2 drop-shadow-lg">
           <Play className="w-5 h-5 fill-brand-red text-brand-red" />
           Shorts
@@ -218,7 +218,6 @@ const ShortVideoPlayer: React.FC<ShortVideoPlayerProps> = ({ video, onNext, onPr
     if (!(window as any).YT) {
       const tag = document.createElement('script');
       tag.src = "https://www.youtube.com/iframe_api";
-      tag.crossOrigin = "anonymous";
       const firstScriptTag = document.getElementsByTagName('script')[0];
       if (firstScriptTag && firstScriptTag.parentNode) {
         firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
@@ -228,34 +227,50 @@ const ShortVideoPlayer: React.FC<ShortVideoPlayerProps> = ({ video, onNext, onPr
     }
 
     const initPlayer = () => {
-      if (!(window as any).YT || !(window as any).YT.Player) return;
+      if (!(window as any).YT || !(window as any).YT.Player) {
+        console.warn("Shorts: YT API not ready");
+        return;
+      }
       
+      console.log("Shorts: Initializing Player for video ID:", video.id);
       const playerDivId = `shorts-player-${video.id}`;
-      playerRef.current = new (window as any).YT.Player(playerDivId, {
-        videoId: video.id,
-        playerVars: {
-          autoplay: 1,
-          controls: 0,
-          loop: 1,
-          playlist: video.id, // required for loop
-          modestbranding: 1,
-          rel: 0,
-          iv_load_policy: 3,
-          showinfo: 0,
-          disablekb: 1,
-          enablejsapi: 1,
-          origin: window.location.origin
-        },
-        events: {
-          'onReady': (event: any) => {
-            event.target.playVideo();
-            if (isMuted) event.target.mute();
+      const safeOrigin = window.location.origin && window.location.origin !== 'null' ? window.location.origin : 'https://www.youtube.com';
+
+      try {
+        playerRef.current = new (window as any).YT.Player(playerDivId, {
+          videoId: video.id,
+          playerVars: {
+            autoplay: 1,
+            controls: 0,
+            loop: 1,
+            playlist: video.id, // required for loop
+            modestbranding: 1,
+            rel: 0,
+            iv_load_policy: 3,
+            showinfo: 0,
+            disablekb: 1,
+            enablejsapi: 1,
+            origin: safeOrigin,
+            widget_referrer: safeOrigin
           },
-          'onStateChange': (event: any) => {
-            setIsPlaying(event.data === (window as any).YT.PlayerState.PLAYING);
+          events: {
+            'onReady': (event: any) => {
+              console.log("Shorts: Player Ready");
+              event.target.playVideo();
+              if (isMuted) event.target.mute();
+            },
+            'onStateChange': (event: any) => {
+              const state = event.data;
+              setIsPlaying(state === (window as any).YT.PlayerState.PLAYING);
+            },
+            'onError': (e: any) => {
+              console.error("Shorts: YT Player Error. Code:", e.data);
+            }
           }
-        }
-      });
+        });
+      } catch (err) {
+        console.error("Shorts: Failed to create YT.Player instance:", err);
+      }
     };
 
     if ((window as any).YT && (window as any).YT.Player) {

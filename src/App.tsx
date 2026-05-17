@@ -5,13 +5,15 @@ import { Capacitor } from '@capacitor/core';
 import { safeFetch } from "./lib/fetchUtils";
 import ShortsScreen from "./components/ShortsScreen";
 import SearchScreen from "./components/SearchScreen";
-import { Video, VideoCard, SafeImage, HistoryCard, VideoMenu } from "./components/Common";
+import SubscriptionsScreen from "./components/SubscriptionsScreen";
+import { Video, VideoCard, SafeImage, HistoryCard, VideoMenu, Subscription } from "./components/Common";
 import { 
   Settings, 
   Play, 
   Search, 
   Mic,
   RefreshCw,
+  AlertCircle,
   Trash2,
   History,
   AlertTriangle,
@@ -21,6 +23,7 @@ import {
   MessageSquare,
   Clapperboard,
   User,
+  Users,
   Plus,
   MoreVertical,
   ListPlus,
@@ -50,7 +53,7 @@ interface HistoryItem {
 }
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<"home" | "shorts" | "search" | "profile">("home");
+  const [activeTab, setActiveTab] = useState<"home" | "shorts" | "subscriptions" | "search" | "profile">("home");
   const [profileView, setProfileView] = useState<"main" | "settings" | "history" | "watch-later" | "queue" | "playlists" | "setup" | "changelogs" | "about" | "channel">("main");
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null);
   const [channelData, setChannelData] = useState<Partial<Video> | null>(null);
@@ -75,6 +78,12 @@ export default function App() {
   const [watchLater, setWatchLater] = useState<Video[]>(() => {
     try {
       const saved = localStorage.getItem("nanotube_watch_later");
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
+  const [subscriptions, setSubscriptions] = useState<Video[]>(() => {
+    try {
+      const saved = localStorage.getItem("nanotube_subscriptions");
       return saved ? JSON.parse(saved) : [];
     } catch { return []; }
   });
@@ -155,7 +164,7 @@ export default function App() {
     };
   }, [selectedVideo, profileView, activeTab, isMinimized, isFullscreen]);
 
-  const changeTab = (tab: "home" | "shorts" | "search" | "profile") => {
+  const changeTab = (tab: "home" | "shorts" | "subscriptions" | "search" | "profile") => {
     setActiveTab(tab);
     setProfileView("main");
     window.history.pushState({ tab, view: "main", video: null }, "");
@@ -180,11 +189,12 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem("nanotube_history", JSON.stringify(history));
     localStorage.setItem("nanotube_watch_later", JSON.stringify(watchLater));
+    localStorage.setItem("nanotube_subscriptions", JSON.stringify(subscriptions));
     localStorage.setItem("nanotube_playlists", JSON.stringify(playlists));
     localStorage.setItem("nanotube_data_saver", String(dataSaver));
     localStorage.setItem("nanotube_quality", qualityPreference);
     localStorage.setItem("nanotube_aggressive_caching", String(aggressiveCaching));
-  }, [history, watchLater, playlists, dataSaver, qualityPreference, aggressiveCaching]);
+  }, [history, watchLater, subscriptions, playlists, dataSaver, qualityPreference, aggressiveCaching]);
 
   // Persistence logic
   const saveSettings = () => {
@@ -316,6 +326,22 @@ export default function App() {
     try {
       let results: Video[] = [];
 
+      // 0. Priority: Fetch from Subscribed Channels if on Home Feed and has subscriptions
+      if (!query && !isAppend && subscriptions.length > 0 && apiKey && Math.random() > 0.4) {
+        try {
+          const randomSub = subscriptions[Math.floor(Math.random() * subscriptions.length)];
+          if (randomSub.channelId) {
+            const subRes = await safeFetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${randomSub.channelId}&maxResults=5&order=date&type=video&key=${apiKey}`);
+            if (subRes.ok) {
+              const subData = await subRes.json();
+              results = (subData.items || []).map(transformYoutube);
+            }
+          }
+        } catch (e) {
+          console.warn("Subscribed feed fetching failed", e);
+        }
+      }
+
       // 1. Try YouTube API if key is present
       if (apiKey) {
         console.log("Using YouTube API...");
@@ -383,16 +409,14 @@ export default function App() {
             throw new Error("Failed to fetch and no Gemini key available");
         }
         const ai = new GoogleGenAI({ apiKey: geminiKey });
+        const model = ai.getGenerativeModel({ model: "gemini-3-flash-preview" });
         const prompt = `Provide a JSON array of 12 distinct, PUBLIC, AND EMBEDDABLE YouTube video IDs ${query ? `related to "${query}"` : `that are trending in ${region} right now`}. 
         Each object MUST have: id (ACTUAL working video ID), title, channel, views, time, duration. Return ONLY the JSON array.`;
         
         try {
-          const response = await ai.models.generateContent({
-            model: "gemini-3-flash-preview",
-            contents: [{ parts: [{ text: prompt }] }],
-          });
-          
-          let text = response.text;
+          const result = await model.generateContent(prompt);
+          const response = await result.response;
+          let text = response.text();
           // Filter out markdown code blocks if any
           text = text.replace(/```json\n?|```/g, "").trim();
           
@@ -555,6 +579,25 @@ export default function App() {
     });
   };
 
+  const toggleSubscription = (channel: Partial<Video>) => {
+    if (!channel.channelId && !channel.id) return;
+    const cid = channel.channelId || channel.id!;
+    setSubscriptions(prev => {
+      const exists = prev.find(s => (s.channelId || s.id) === cid);
+      if (exists) return prev.filter(s => (s.channelId || s.id) !== cid);
+      return [...prev, {
+        channelId: cid,
+        channelTitle: channel.channel || channel.title || "Unknown Channel",
+        thumbnail: channel.thumbnail || "",
+        subscriberCount: channel.subscriberCount
+      } as any];
+    });
+  };
+
+  const isSubscribed = (cid: string) => {
+    return subscriptions.some(s => (s.channelId || s.id) === cid);
+  };
+
   const shareVideo = (video: Video) => {
     const url = `https://www.youtube.com/watch?v=${video.id}`;
     if (navigator.share) {
@@ -570,7 +613,7 @@ export default function App() {
 
   if (activeTab === "search") {
     return (
-      <div className="h-screen bg-bg-dark text-text-primary font-sans selection:bg-brand-red/30 flex flex-col overflow-hidden relative">
+      <div className="h-screen bg-bg-dark text-text-primary font-sans selection:bg-brand-red/30 flex flex-col overflow-hidden relative pt-[env(safe-area-inset-top)]">
         <SearchScreen 
           apiKeys={apiKeys}
           region={region}
@@ -611,7 +654,7 @@ export default function App() {
   }
 
   return (
-    <div className="h-screen bg-bg-dark text-text-primary font-sans selection:bg-brand-red/30 flex flex-col overflow-hidden relative">
+    <div className="h-screen bg-bg-dark text-text-primary font-sans selection:bg-brand-red/30 flex flex-col overflow-hidden relative pt-[env(safe-area-inset-top)]">
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* HEADER */}
         <header className="flex items-center justify-between px-6 md:px-8 py-4 bg-[#0A0A0A] border-b border-border-dark shrink-0 z-[60] backdrop-blur-md bg-opacity-80">
@@ -738,6 +781,20 @@ export default function App() {
                 className="absolute inset-0 z-10"
               >
                 <ShortsScreen />
+              </motion.div>
+            ) : activeTab === "subscriptions" ? (
+              <motion.div
+                key="subscriptions"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="flex-1 flex flex-col overflow-hidden"
+              >
+                <SubscriptionsScreen 
+                  subscriptions={subscriptions as any}
+                  onChannelClick={fetchChannelContent}
+                  onNavigateHome={goHome}
+                />
               </motion.div>
             ) : (
               <motion.div 
@@ -1129,8 +1186,11 @@ export default function App() {
                                  </div>
                                  <p className="text-xs text-white/40 mt-4 leading-relaxed max-w-2xl line-clamp-2">{channelData.description}</p>
                               </div>
-                              <button className="bg-white text-black px-8 py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-brand-red hover:text-white transition-all transform active:scale-95 shadow-xl">
-                                 Subscribe
+                              <button 
+                                onClick={() => toggleSubscription(channelData)}
+                                className={`${isSubscribed(channelData.id!) ? 'bg-white/10 text-white' : 'bg-white text-black'} px-8 py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-brand-red hover:text-white transition-all transform active:scale-95 shadow-xl`}
+                              >
+                                 {isSubscribed(channelData.id!) ? 'Subscribed' : 'Subscribe'}
                               </button>
                             </div>
 
@@ -1276,7 +1336,7 @@ export default function App() {
           </AnimatePresence>
         </main>
 
-        <nav className="h-20 bg-card-dark border-t border-border-dark flex items-center justify-center gap-10 md:gap-24 z-50 backdrop-blur-md shrink-0">
+        <nav className="h-20 bg-card-dark border-t border-border-dark flex items-center justify-center gap-6 md:gap-20 z-50 backdrop-blur-md shrink-0">
           <NavButton 
             icon={<Play className="w-6 h-6" />} 
             label="Home" 
@@ -1288,6 +1348,12 @@ export default function App() {
             label="Shorts" 
             active={activeTab === "shorts"} 
             onClick={() => changeTab("shorts")} 
+          />
+          <NavButton 
+            icon={<Users className="w-6 h-6" />} 
+            label="Subs" 
+            active={activeTab === "subscriptions"} 
+            onClick={() => changeTab("subscriptions")} 
           />
           <NavButton 
             icon={<Search className="w-6 h-6" />} 
@@ -1326,6 +1392,8 @@ export default function App() {
           setProfileView={setProfileView}
           isFullscreen={isFullscreen}
           setIsFullscreen={setIsFullscreen}
+          isSubscribed={isSubscribed}
+          toggleSubscription={toggleSubscription}
         />
       )}
     </div>
@@ -1351,13 +1419,15 @@ function PlayerOverlay({
   setActiveTab,
   setProfileView,
   isFullscreen,
-  setIsFullscreen
+  setIsFullscreen,
+  isSubscribed,
+  toggleSubscription
 }: any) {
   return (
     <motion.div 
       layout
       initial={false}
-      className={`fixed z-[1000] bg-[#050505] shadow-2xl overflow-hidden transition-all duration-300 ${isMinimized ? 'bottom-24 right-4 ring-1 ring-white/10 rounded-2xl w-[90%] left-4 mx-auto md:w-80 h-20 md:left-auto md:mx-0' : 'inset-0 overflow-y-auto'}`}
+      className={`fixed z-[1000] bg-[#050505] shadow-2xl overflow-hidden transition-all duration-300 ${isMinimized ? 'bottom-24 right-4 ring-1 ring-white/10 rounded-2xl w-[90%] left-4 mx-auto md:w-80 h-20 md:left-auto md:mx-0' : 'inset-0 overflow-y-auto pt-[env(safe-area-inset-top)]'}`}
     >
       <PlayerView 
         video={video} 
@@ -1375,6 +1445,8 @@ function PlayerOverlay({
         onChannelClick={fetchChannelContent}
         playlists={playlists}
         qualityPreference={qualityPreference}
+        isSubscribed={isSubscribed}
+        toggleSubscription={toggleSubscription}
         isFullscreen={isFullscreen}
         setIsFullscreen={setIsFullscreen}
         onNavigateSettings={() => {
@@ -1441,20 +1513,26 @@ const PlayerView: React.FC<{
   onChannelClick?: (channelId: string) => void,
   playlists: Record<string, Video[]>,
   qualityPreference?: string,
+  isSubscribed?: (cid: string) => boolean,
+  toggleSubscription?: (channel: any) => void,
   isMinimized?: boolean,
   onMinimize?: () => void,
   onExpand?: () => void,
   isFullscreen: boolean,
   setIsFullscreen: (v: boolean) => void
-}> = ({ video, onClose, related, initialTime, onProgress, onWatchLater, onAddToPlaylist, onQueue, onShare, onNavigateSettings, onChannelClick, playlists, qualityPreference, isMinimized, onMinimize, onExpand, isFullscreen, setIsFullscreen }) => {
+}> = ({ video, onClose, related, initialTime, onProgress, onWatchLater, onAddToPlaylist, onQueue, onShare, onNavigateSettings, onChannelClick, playlists, qualityPreference, isSubscribed, toggleSubscription, isMinimized, onMinimize, onExpand, isFullscreen, setIsFullscreen }) => {
   const [activeVideo, setActiveVideo] = useState(video);
   const [isPlaying, setIsPlaying] = useState(true);
+  const [playerError, setPlayerError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   // Sync with prop when parent changes selected video
   useEffect(() => {
     setActiveVideo(video);
     setIsPlaying(true); // Auto play new video
     setCurrentTime(video.timestamp || 0);
+    setPlayerError(null);
+    setRetryCount(0);
   }, [video.id]);
 
   const [currentTime, setCurrentTime] = useState(initialTime || 0);
@@ -1527,7 +1605,6 @@ const PlayerView: React.FC<{
     if (!(window as any).YT) {
       const tag = document.createElement('script');
       tag.src = "https://www.youtube.com/iframe_api";
-      tag.crossOrigin = "anonymous";
       const firstScriptTag = document.getElementsByTagName('script')[0];
       if (firstScriptTag && firstScriptTag.parentNode) {
         firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
@@ -1537,13 +1614,20 @@ const PlayerView: React.FC<{
     }
 
     const initPlayer = () => {
-      if (!(window as any).YT || !(window as any).YT.Player || !ytPlayerContainerRef.current) return;
+      if (!(window as any).YT || !(window as any).YT.Player || !ytPlayerContainerRef.current) {
+        console.warn("YT API or container not ready", {
+          yt: !!(window as any).YT,
+          player: !!(window as any).YT?.Player,
+          container: !!ytPlayerContainerRef.current
+        });
+        return;
+      }
       
-      // If player already exists and container has the iframe, don't re-init if it's the same video
-      // This prevents the video from restarting when layout changes if React preserved the DOM
+      console.log("Initializing Player for video ID:", activeVideo.id);
+
       const currentVideoId = playerRef.current?.getVideoData?.()?.video_id;
       if (playerRef.current && ytPlayerContainerRef.current.querySelector('iframe') && currentVideoId === activeVideo.id) {
-        // If it's already playing, just make sure it stays playing
+        console.log("Player already initialized for this video, resuming...");
         if (isPlaying && typeof playerRef.current.playVideo === 'function') {
           playerRef.current.playVideo();
         }
@@ -1552,7 +1636,12 @@ const PlayerView: React.FC<{
 
       // Clear previous player if any
       if (playerRef.current && typeof playerRef.current.destroy === 'function') {
-        try { playerRef.current.destroy(); } catch(e) {}
+        try { 
+          console.log("Destroying previous player instance");
+          playerRef.current.destroy(); 
+        } catch(e) {
+          console.error("Error destroying player:", e);
+        }
         playerRef.current = null;
       }
 
@@ -1564,42 +1653,49 @@ const PlayerView: React.FC<{
       ytPlayerContainerRef.current.appendChild(playerDiv);
 
       const startTime = currentTime > 0 ? currentTime : (initialTime || 0);
+      const safeOrigin = window.location.origin && window.location.origin !== 'null' ? window.location.origin : 'https://www.youtube.com';
 
-      playerRef.current = new (window as any).YT.Player('main-yt-player', {
-        videoId: activeVideo.id,
-        playerVars: {
-          autoplay: 1,
-          controls: 0,
-          modestbranding: 1,
-          rel: 0,
-          iv_load_policy: 3,
-          showinfo: 0,
-          disablekb: 1,
-          enablejsapi: 1,
-          start: startTime,
-          origin: window.location.origin,
-          widget_referrer: window.location.origin
-        },
-        events: {
-          'onReady': (event: any) => {
-            setDuration(event.target.getDuration());
-            if (startTime > 0) event.target.seekTo(startTime, true);
-            if (qualityPreference && qualityPreference !== "auto") {
-              event.target.setPlaybackQuality(qualityPreference);
-            }
-            if (isPlaying) event.target.playVideo();
+      try {
+        playerRef.current = new (window as any).YT.Player('main-yt-player', {
+          videoId: activeVideo.id,
+          playerVars: {
+            autoplay: 1,
+            controls: 0,
+            modestbranding: 1,
+            rel: 0,
+            iv_load_policy: 3,
+            showinfo: 0,
+            disablekb: 1,
+            enablejsapi: 1,
+            start: startTime,
+            origin: safeOrigin,
+            widget_referrer: safeOrigin
           },
-          'onStateChange': (event: any) => {
-            setIsPlaying(event.data === (window as any).YT.PlayerState.PLAYING);
-            if (event.data === (window as any).YT.PlayerState.ENDED) {
-               // Handle end if needed
+          events: {
+            'onReady': (event: any) => {
+              console.log("Player Ready");
+              setDuration(event.target.getDuration());
+              if (startTime > 0) event.target.seekTo(startTime, true);
+              if (qualityPreference && qualityPreference !== "auto") {
+                event.target.setPlaybackQuality(qualityPreference);
+              }
+              if (isPlaying) event.target.playVideo();
+            },
+            'onStateChange': (event: any) => {
+              const state = event.data;
+              console.log("Player State Change:", state);
+              setIsPlaying(state === (window as any).YT.PlayerState.PLAYING);
+            },
+            'onError': (e: any) => {
+              console.error("YT Player Error. Code:", e.data);
+              setPlayerError(`Playback Error (${e.data})`);
+              // Common error codes: 2 (invalid param), 5 (HTML5 error), 100 (not found/private), 101/150 (embed restricted)
             }
-          },
-          'onError': (e: any) => {
-            console.error("YT Player Error:", e.data);
           }
-        }
-      });
+        });
+      } catch (err) {
+        console.error("Failed to create YT.Player instance:", err);
+      }
     };
 
     if ((window as any).YT && (window as any).YT.Player) {
@@ -1617,7 +1713,7 @@ const PlayerView: React.FC<{
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [activeVideo.id, isMinimized, isFullscreen]);
+  }, [activeVideo.id, isMinimized, isFullscreen, retryCount]);
 
   const togglePlay = () => {
     if (!playerRef.current || typeof playerRef.current.pauseVideo !== 'function') return;
@@ -1710,6 +1806,28 @@ const PlayerView: React.FC<{
               }
             >
               <div ref={ytPlayerContainerRef} className={`w-full h-full pointer-events-none ${isMinimized ? 'scale-150 origin-center' : ''}`} />
+              
+              {playerError && !isMinimized && (
+                <div className="absolute inset-0 bg-black/90 flex flex-col items-center justify-center p-6 text-center z-[100] backdrop-blur-sm">
+                  <div className="p-4 bg-brand-red/20 rounded-full mb-6">
+                    <AlertCircle className="w-12 h-12 text-brand-red" />
+                  </div>
+                  <h3 className="text-xl font-black italic tracking-tighter mb-2">Video Playback Failed</h3>
+                  <p className="text-white/40 text-xs mb-8 max-w-[240px] font-medium leading-relaxed">
+                    YouTube blocked this playback or the video is restricted. {playerError}
+                  </p>
+                  <button 
+                    onClick={() => {
+                      setPlayerError(null);
+                      setRetryCount(prev => prev + 1);
+                    }}
+                    className="bg-white text-black px-8 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-brand-red hover:text-white transition-all transform active:scale-95 shadow-xl flex items-center gap-2"
+                  >
+                    <RefreshCw className="w-4 h-4" /> Reload Player
+                  </button>
+                </div>
+              )}
+
               {isMinimized && <div className="absolute inset-0 bg-transparent" />}
 
               {/* CUSTOM CONTROLS OVERLAY - ONLY IN FULL MODE */}
@@ -1854,8 +1972,15 @@ const PlayerView: React.FC<{
                       </h3>
                       <p className="text-[10px] text-white/30 font-bold uppercase tracking-widest">Verified Channel</p>
                     </div>
-                    <button className="ml-4 bg-white text-black px-6 py-2.5 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-brand-red hover:text-white transition-all transform active:scale-95">
-                      Subscribe
+                    <button 
+                      onClick={() => toggleSubscription?.({
+                        id: activeVideo.channelId,
+                        channel: activeVideo.channel,
+                        thumbnail: fullDetails.channelThumbnail || ""
+                      })}
+                      className={`ml-4 ${isSubscribed?.(activeVideo.channelId!) ? 'bg-white/10 text-white' : 'bg-white text-black'} px-6 py-2.5 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-brand-red hover:text-white transition-all transform active:scale-95`}
+                    >
+                      {isSubscribed?.(activeVideo.channelId!) ? 'Subscribed' : 'Subscribe'}
                     </button>
                   </div>
                   <div className="flex gap-2">

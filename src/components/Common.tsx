@@ -24,6 +24,13 @@ export interface HistoryItem {
   duration: number; // seconds
 }
 
+export interface Subscription {
+  channelId: string;
+  channelTitle: string;
+  thumbnail: string;
+  subscriberCount?: string;
+}
+
 export function SafeImage({ src, alt, className }: { src: string, alt: string, className: string }) {
   const [error, setError] = useState(false);
   const [retryWithMq, setRetryWithMq] = useState(false);
