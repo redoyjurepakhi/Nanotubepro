@@ -1,3 +1,4 @@
+import { ScreenOrientation } from "@capacitor/screen-orientation";
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { App as CapApp } from '@capacitor/app';
@@ -212,31 +213,57 @@ export default function App() {
     fetchVideos("");
   };
 
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-      if (document.fullscreenElement && isMobile) {
-        try {
-          const orientation = screen.orientation as any;
-          if (orientation && orientation.lock) {
-            orientation.lock("landscape").catch(() => {});
-          }
-        } catch (e) {
-          console.warn("Orientation logic failed", e);
-        }
-      } else if (isMobile) {
-        try {
-          const orientation = screen.orientation as any;
-          if (orientation && orientation.unlock) {
-            orientation.unlock();
-          }
-        } catch (e) {}
-      }
-    };
+  
 
-    document.addEventListener("fullscreenchange", handleFullscreenChange);
-    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
-  }, []);
+useEffect(() => {
+
+  const handleFullscreenChange = async () => {
+
+    if (document.fullscreenElement) {
+
+      try {
+
+        await ScreenOrientation.lock({
+          orientation: "landscape"
+        });
+
+      } catch (e) {
+
+        console.warn("Landscape lock failed", e);
+
+      }
+
+    } else {
+
+      try {
+
+        await ScreenOrientation.unlock();
+
+      } catch (e) {
+
+        console.warn("Orientation unlock failed", e);
+
+      }
+
+    }
+
+  };
+
+  document.addEventListener(
+    "fullscreenchange",
+    handleFullscreenChange
+  );
+
+  return () => {
+
+    document.removeEventListener(
+      "fullscreenchange",
+      handleFullscreenChange
+    );
+
+  };
+
+}, []);
 
   const [pullDistance, setPullDistance] = useState(0);
   const touchStartRef = React.useRef(0);
@@ -654,10 +681,26 @@ export default function App() {
   }
 
   return (
-    <div className="h-screen bg-bg-dark text-text-primary font-sans selection:bg-brand-red/30 flex flex-col overflow-hidden relative pt-[env(safe-area-inset-top)]">
+    <div
+  className="
+    h-screen
+    bg-bg-dark
+    text-text-primary
+    font-sans
+    selection:bg-brand-red/30
+    flex
+    flex-col
+    overflow-hidden
+    relative
+  "
+  style={{
+    paddingTop: "max(env(safe-area-inset-top), 12px)",
+    paddingBottom: "env(safe-area-inset-bottom)"
+  }}
+>
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* HEADER */}
-        <header className="flex items-center justify-between px-6 md:px-8 py-4 bg-[#0A0A0A] border-b border-border-dark shrink-0 z-[60] backdrop-blur-md bg-opacity-80">
+       <header className="flex items-center justify-between px-4 md:px-8 pt-5 pb-3 min-h-[72px] bg-[#0A0A0A]/90 border-b border-border-dark shrink-0 z-[60] backdrop-blur-md">
           <div className="flex items-center gap-3 cursor-pointer group" onClick={goHome}>
             <div className="w-9 h-9 bg-brand-red rounded-xl flex items-center justify-center shadow-[0_0_15px_rgba(255,0,0,0.3)] group-hover:scale-110 transition-transform">
               <Play className="w-5 h-5 fill-white text-white" />
