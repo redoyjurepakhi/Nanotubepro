@@ -1470,7 +1470,20 @@ function PlayerOverlay({
     <motion.div 
       layout
       initial={false}
-      className={`fixed z-[1000] bg-[#050505] shadow-2xl overflow-hidden transition-all duration-300 ${isMinimized ? 'bottom-24 right-4 ring-1 ring-white/10 rounded-2xl w-[90%] left-4 mx-auto md:w-80 h-20 md:left-auto md:mx-0' : 'inset-0 overflow-y-auto pt-[env(safe-area-inset-top)]'}`}
+      className={`
+        fixed
+        z-[1000]
+        bg-[#050505]
+        shadow-2xl
+        overflow-hidden
+        transition-all
+        duration-300
+        ${
+          isMinimized
+            ? 'bottom-24 right-4 ring-1 ring-white/10 rounded-2xl w-[90%] left-4 mx-auto md:w-80 h-20 md:left-auto md:mx-0'
+            : 'inset-0 overflow-y-auto pt-[calc(env(safe-area-inset-top)+12px)] pb-[calc(env(safe-area-inset-bottom)+12px)]'
+        }
+      `}
     >
       <PlayerView 
         video={video} 
