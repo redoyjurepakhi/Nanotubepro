@@ -5,6 +5,7 @@ import { App as CapApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { safeFetch } from "./lib/fetchUtils";
 import ShortsScreen from "./components/ShortsScreen";
+import { showInterstitialAd } from "./lib/ads";
 import SearchScreen from "./components/SearchScreen";
 import SubscriptionsScreen from "./components/SubscriptionsScreen";
 import { Video, VideoCard, SafeImage, HistoryCard, VideoMenu, Subscription } from "./components/Common";
@@ -66,6 +67,11 @@ export default function App() {
   const [apiKeys, setApiKeys] = useState<string>(() => localStorage.getItem("nanotube_api_keys") || "");
   const [region, setRegion] = useState<string>(() => localStorage.getItem("nanotube_region") || "US");
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
+  const videoCounter = useRef(0);
+
+const nextVideoAd = useRef(
+  Math.floor(Math.random() * 3) + 2
+);
   const [isMinimized, setIsMinimized] = useState(false);
   const [dataSaver, setDataSaver] = useState(() => localStorage.getItem("nanotube_data_saver") === "true");
   const [qualityPreference, setQualityPreference] = useState(() => localStorage.getItem("nanotube_quality") || "auto");
@@ -177,14 +183,39 @@ export default function App() {
   };
 
   const selectVideo = (v: Video | null) => {
-    setSelectedVideo(v);
-    setIsMinimized(false);
-    if (v) {
-      window.history.pushState({ tab: activeTab, view: profileView, video: v.id }, "");
-    } else {
-      if (selectedVideo) window.history.back();
+
+  if (v) {
+
+    videoCounter.current += 1;
+
+    if (videoCounter.current >= nextVideoAd.current) {
+
+      showInterstitialAd();
+
+      videoCounter.current = 0;
+
+      nextVideoAd.current =
+        Math.floor(Math.random() * 3) + 2;
     }
-  };
+  }
+
+  setSelectedVideo(v);
+
+  setIsMinimized(false);
+
+  if (v) {
+
+    window.history.pushState({
+      tab: activeTab,
+      view: profileView,
+      video: v.id
+    }, "");
+
+  } else {
+
+    if (selectedVideo) window.history.back();
+  }
+};
 
   // Sync state to localStorage
   useEffect(() => {

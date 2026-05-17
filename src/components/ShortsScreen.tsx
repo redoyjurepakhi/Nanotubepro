@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { safeFetch } from "../lib/fetchUtils";
+import { safeFetch } from "../lib/fetchUtils";
 import { 
   Play, 
   Pause, 
@@ -31,6 +32,11 @@ interface ShortVideo {
 export default function ShortsScreen() {
   const [shorts, setShorts] = useState<ShortVideo[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const shortsCounter = useRef(0);
+
+const nextShortsAd = useRef(
+  Math.floor(Math.random() * 3) + 3
+);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [apiKeys] = useState<string>(() => localStorage.getItem("nanotube_api_keys") || "");
@@ -177,7 +183,27 @@ export default function ShortsScreen() {
             <ShortVideoPlayer 
               key={shorts[currentIndex].id}
               video={shorts[currentIndex]}
-              onNext={() => currentIndex < shorts.length - 1 && setCurrentIndex(currentIndex + 1)}
+              onNext={() => {
+
+  if (currentIndex < shorts.length - 1) {
+
+    const nextIndex = currentIndex + 1;
+
+    setCurrentIndex(nextIndex);
+
+    shortsCounter.current += 1;
+
+    if (shortsCounter.current >= nextShortsAd.current) {
+
+      showInterstitialAd();
+
+      shortsCounter.current = 0;
+
+      nextShortsAd.current =
+        Math.floor(Math.random() * 3) + 3;
+    }
+  }
+}}
               onPrev={() => currentIndex > 0 && setCurrentIndex(currentIndex - 1)}
               hasMore={currentIndex < shorts.length - 1}
               hasPrev={currentIndex > 0}
