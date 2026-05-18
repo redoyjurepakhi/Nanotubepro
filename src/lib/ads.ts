@@ -1,16 +1,7 @@
-import { registerPlugin } from "@capacitor/core";
-
-const AdsPlugin = registerPlugin("AdsPlugin");
-
 export async function showInterstitialAd() {
 
-  try {
+  console.log("Ad Triggered");
 
-    await AdsPlugin.showInterstitial();
+  return;
 
-  } catch (e) {
-
-    console.warn("Ad failed", e);
-
-  }
 }
